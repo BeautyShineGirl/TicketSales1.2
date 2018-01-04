@@ -1,0 +1,125 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="custom">
+  	<!-- 获得总记录数 	杨立	2017-09-27	-->
+  	<select id="getAllCount" resultType="int">
+  		select count(*) from custom <include refid="getSql"></include> 
+  	</select>
+  	
+  	<!-- 获得当前页的数据 	杨立	2017-09-27-->
+  	<select id="getPageDate" resultType="cn.nvinfo.tools.CustomList">
+	select id,name,custType,level,phone,linkMan,creditLimit,cashMoney,state from custom 
+	<include refid="getSql"></include>  order by id asc limit #{pageIndex},#{pageSize}
+  	</select>
+  	<sql id="getSql">
+  		<where>
+  			1=1
+  		</where>
+		<if test=" id !=null and id!=''">
+			<choose>
+				<!-- 大于 -->
+				<when test="logic==0">
+						and id &gt;${id}
+				</when>
+				<!-- 小于-->
+				<when test="logic==1">
+						and id &lt;${id}
+				</when>
+				<!-- 等于 -->
+				<when test="logic==2">
+						and id =${id}
+				</when>
+				<!-- 大于 等于-->
+				<when test="logic==3">
+						and id &gt;=${id}
+				</when>
+				<!-- 小于等于 -->
+				<when test="logic==4">
+						and id &lt;= ${id}
+				</when>
+				<!-- 不等于 -->
+				<when test="logic==5">
+						and id !=${id}
+				</when>
+				<otherwise>
+						and id like '%${id}%'
+				</otherwise>
+			</choose>
+		</if>
+			<if test=" name !=null and name!=''">
+				and name like '%${name}%'
+		</if>
+		<if test=" linkName !=null and linkName!=''">
+				and linkName like '%${linkName}%'
+		</if>
+	
+		<if test="custType !=null and custType!=''">
+				and custType like '%${custType}%'
+		</if>
+		<if test=" level!=null and level!=''">
+				and level like '%${level}%'
+		</if>
+  	</sql>
+  
+ 	 <!-- 修改的数据回显   	杨立	2017-09-27 -->
+  	<select id="getCustom" resultType="cn.nvinfo.domain.Custom">
+  		select * from custom where id=#{id}
+  	</select>
+  	<!-- 修改的数据回显   	杨立	2017-09-27 -->
+  	<select id="getCustomType" resultType="cn.nvinfo.domain.CustomType">
+  		select * from customType
+  	</select>
+  	
+  	<!-- 分销商注册 	杨立	2017-10-16 -->
+  	<insert id="save" parameterType="cn.nvinfo.domain.Custom" useGeneratedKeys="true">
+  		insert into custom (name,userName,linkMan,phone,creditLimit,cashMoney,custType,custType,password) 
+  		values(#{name},#{userName},#{linkMan},#{phone},#{creditLimit},#{cashMoney},#{custType},#{custType},#{password})
+  	</insert>
+  	<!-- 从字典表中查询分销商等级 	杨立	2017-09-27-->
+  	<select id="getLevel" resultType="java.lang.String">
+  		select value from dictionary where sort=12
+  	</select>
+  	<!-- 修改 	杨立	2017-09-27-->
+  	<update id="edit" parameterType="cn.nvinfo.domain.Custom" useGeneratedKeys="true">
+  		update custom set name=#{name},userName=#{userName},linkMan=#{linkMan},phone=#{phone},
+  		creditLimit=#{creditLimit},cashMoney=#{cashMoney},custType=#{custType},custType=#{level},state=#{state},password=#{password} where id=#{id} 
+  	</update>
+  	
+  	<!--  审核分页显示	 获得总页数		杨立   2017-09-27	-->
+  	<select id="getCheckAllCount" resultType="int">
+  		select count(*) from custom where state=0 
+  	</select>
+  	
+  	<!-- 审核分页显示	 获得当前页数据		杨立   2017-09-27-->
+  	<select id="getCheckPageDate" resultType="cn.nvinfo.tools.CustomList">
+	select id,name,custType,level,phone,linkMan,creditLimit,cashMoney,state from custom 
+	 where state=0
+	 order by id asc limit #{pageIndex},#{pageSize}
+  	</select>
+  	
+  	<!-- 审核通过操作	杨立	2017-09-27-->
+  	<update id="editCheck" parameterType="cn.nvinfo.domain.Custom" useGeneratedKeys="true">
+  		update custom set state=1 where id=#{id} 
+  	</update>
+  	
+  	<!-- 审核不通过操作	杨立	2017-10-09-->
+  	<update id="checkNotPass" parameterType="cn.nvinfo.domain.Custom" useGeneratedKeys="true">
+  		update custom set state=2 where id=#{id} 
+  	</update>
+  	
+  	<!-- 合同管理数据回显	杨立	2017-09-28-->
+  	<select id="getCuseom" resultType="cn.nvinfo.domain.Custom">
+  		select * from custom
+  	</select>
+  	<!--合同上传	杨立	2017-09-28-->
+  	<update id="upditURL" parameterType="cn.nvinfo.domain.Custom" useGeneratedKeys="true">
+  		update custom set url=#{url} where id=#{id} 
+  	</update>
+  	
+  	<!-- 删除   杨立   2017-09-20	-->
+  	<delete id="delete" parameterType="cn.nvinfo.domain.Custom">
+  		delete from custom where id=#{id}
+  	</delete>
+</mapper>

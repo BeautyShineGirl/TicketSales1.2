@@ -1,0 +1,157 @@
+package cn.nvinfo.alipay.servlet;
+
+import java.io.File;
+import java.io.IOException;
+import java.util.Date;
+
+import javax.servlet.ServletException;
+import javax.servlet.http.HttpServlet;
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
+
+import cn.nvinfo.domain.Order;
+import cn.nvinfo.service.UserService;
+import cn.nvinfo.service.imp.UserServiceImp;
+import cn.nvinfo.utils.AlipayConfig;
+import cn.nvinfo.utils.CheckUtil;
+import cn.nvinfo.utils.QRCodeUtil;
+import cn.nvinfo.utils.Result;
+import cn.nvinfo.utils.StringUtil;
+
+import com.alipay.api.AlipayApiException;
+import com.alipay.api.AlipayClient;
+import com.alipay.api.DefaultAlipayClient;
+import com.alipay.api.domain.AlipayTradePrecreateModel;
+import com.alipay.api.request.AlipayTradePrecreateRequest;
+import com.alipay.api.response.AlipayTradePrecreateResponse;
+
+/**
+ * 支付宝支付	生成二维码
+ * @author 杨立	2017-10-27
+ *
+ */
+public class AlipayPayServlet extends HttpServlet {
+
+	private static final long serialVersionUID = 1L;
+
+	@Override
+	protected void doGet(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
+		doPost(req, resp);
+	}
+
+	@Override
+	protected void doPost(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
+		req.setCharacterEncoding("utf-8");
+		resp.setCharacterEncoding("utf-8");
+		
+		String out_trade_no =(String) req.getAttribute("out_trade_no");//商户订单号
+		String total_amount =(String) req.getAttribute("total_amount");
+		String subject =(String) req.getAttribute("subject");//订单标题
+		//公共参数
+		AlipayClient alipayClient = new DefaultAlipayClient("https://openapi.alipay.com/gateway.do",
+				AlipayConfig.app_id,AlipayConfig.private_key,"json","UTF-8",AlipayConfig.alipay_public_key,"RSA2");
+		AlipayTradePrecreateRequest request = new AlipayTradePrecreateRequest();
+		AlipayTradePrecreateModel model=new AlipayTradePrecreateModel();
+		request.setBizModel(model);
+		request.setNotifyUrl(AlipayConfig.notify_url);
+		model.setOutTradeNo(out_trade_no);//订单号
+		model.setTotalAmount(total_amount);//订单总金额
+		model.setSubject(subject);//订单标题
+		model.setTimeoutExpress("1m");//该笔订单允许的最晚付款时间，逾期将关闭交易。
+		AlipayTradePrecreateResponse response;
+		try {
+			response = alipayClient.execute(request);
+			if(response.isSuccess()){
+				String picPath = StringUtil.getRandomString(4);
+				String str = String.valueOf(new Date().getTime());
+				String path=req.getSession().getServletContext().getRealPath("upload/erWeiMa_alipay/")+File.separator;
+				String file=path+str+picPath+".png";
+				//生成二维码
+				QRCodeUtil.QRCode(response.getQrCode(), 300, 300, "png",file );
+				resp.getWriter().write("http://192.168.1.109:8080"+req.getContextPath()+"/upload/erWeiMa_alipay/"+str+picPath+".png");
+			} else {
+				//网关错误
+				if(!response.getCode().equals("10000")){
+					System.out.println(response.getCode());
+					resp.getWriter().write("{\"msg\":\"系统错误\",\"result\":[{}],\"code\":\"\"}");
+				}
+				//接口返回错误	请立即调用查询订单API，查询当前订单的状态，并根据订单状态决定下一步的操作 
+				if("ACQ.SYSTEM_ERROR".equals(response.getSubMsg())){
+					req.setAttribute("out_trade_no", out_trade_no);
+					req.getRequestDispatcher("/queryServlet").forward(req, resp);
+				}
+				//参数无效	检查请求参数，修改后重新发起请求 
+				if("ACQ.INVALID_PARAMETER".equals(response.getSubMsg())){
+					resp.getWriter().write("{\"msg\":\"参数无效\",\"result\":[{}],\"code\":\"\"}");
+				}
+				//无权限使用接口		联系支付宝小二签约 
+				if("ACQ.ACCESS_FORBIDDEN".equals(response.getSubMsg())){
+					resp.getWriter().write("{\"msg\":\"无权限使用接口\",\"result\":[{}],\"code\":\"\"}");
+				}
+				//订单信息中包含违禁词
+				if("ACQ.EXIST_FORBIDDEN_WORD".equals(response.getSubMsg())){
+					resp.getWriter().write("{\"msg\":\"订单信息中包含违禁词,请修改订单\",\"result\":[{}],\"code\":\"\"}");
+				}
+				//应用APP_ID填写错误
+				if("ACQ.PARTNER_ERROR".equals(response.getSubMsg())){
+					resp.getWriter().write("{\"msg\":\"应用APP_ID填写错误\",\"result\":[{}],\"code\":\"\"}");
+				}
+				// 	订单总金额超过限额
+				if("ACQ.TOTAL_FEE_EXCEED".equals(response.getSubMsg())){
+					resp.getWriter().write("{\"msg\":\"订单总金额超过限额,修改订单金额再发起请求\",\"result\":[{}],\"code\":\"\"}");
+				}
+				//交易信息被篡改	更换商家订单号后，重新发起请求
+				if("ACQ.CONTEXT_INCONSISTENT".equals(response.getSubMsg())){
+					resp.getWriter().write("{\"msg\":\"交易信息被篡改,更换商家订单号后，重新发起请求\",\"result\":[{}],\"code\":\"\"}");
+				}
+				//交易已被支付	确认该笔交易信息是否为当前买家的，如果是则认为交易付款成功，如果不是则更换商家订单号后，重新发起请求 
+				if("ACQ.TRADE_HAS_SUCCESS".equals(response.getSubMsg())){
+					resp.getWriter().write("{\"msg\":\"交易已被支付\",\"result\":[{}],\"code\":\"\"}");
+				}
+				//交易已经关闭	 	更换商家订单号后，重新发起请求 
+				if("ACQ.TRADE_HAS_CLOSE".equals(response.getSubMsg())){
+					resp.getWriter().write("{\"msg\":\"交易已经关闭\",\"result\":[{}],\"code\":\"\"}");
+				}
+				//买卖家不能相同
+				if("ACQ.BUYER_SELLER_EQUAL".equals(response.getSubMsg())){
+					resp.getWriter().write("{\"msg\":\"买卖家不能相同,更换买家重新付款 \",\"result\":[{}],\"code\":\"\"}");
+				}
+				// 	买家状态非法	用户联系支付宝小二，确认买家状态为什么非法
+				if("ACQ.TRADE_BUYER_NOT_MATCH".equals(response.getSubMsg())){
+					resp.getWriter().write("{\"msg\":\"买家状态非法\",\"result\":[{}],\"code\":\"\"}");
+				}
+				//买家付款日限额超限
+				if("ACQ.BUYER_PAYMENT_AMOUNT_DAY_LIMIT_ERROR".equals(response.getSubMsg())){
+					resp.getWriter().write("{\"msg\":\"买家付款日限额超限\",\"result\":[{}],\"code\":\"\"}");
+				}
+				//商户收款额度超限
+				if("ACQ.BEYOND_PAY_RESTRICTION".equals(response.getSubMsg())){
+					resp.getWriter().write("{\"msg\":\"商户收款额度超限\",\"result\":[{}],\"code\":\"\"}");
+				}
+				//商户收款金额超过月限额
+				if("ACQ.BEYOND_PER_RECEIPT_RESTRICTION".equals(response.getSubMsg())){
+					resp.getWriter().write("{\"msg\":\"商户收款金额超过月限额\",\"result\":[{}],\"code\":\"\"}");
+				}
+				//买家付款月额度超限
+				if("ACQ.BUYER_PAYMENT_AMOUNT_MONTH_LIMIT_ERROR".equals(response.getSubMsg())){
+					resp.getWriter().write("{\"msg\":\"买家付款月额度超限\",\"result\":[{}],\"code\":\"\"}");
+				}
+				//商家账号被冻结
+				if("ACQ.SELLER_BEEN_BLOCKED".equals(response.getSubMsg())){
+					resp.getWriter().write("{\"msg\":\"商家账号被冻结\",\"result\":[{}],\"code\":\"\"}");
+				}
+				//买家未通过人行认证
+				if("ACQ.ERROR_BUYER_CERTIFY_LEVEL_LIMIT".equals(response.getSubMsg())){
+					resp.getWriter().write("{\"msg\":\"买家未通过人行认证\",\"result\":[{}],\"code\":\"\"}");
+				}
+				//商户门店编号无效
+				if("ACQ.INVALID_STORE_ID".equals(response.getSubMsg())){
+					resp.getWriter().write("{\"msg\":\"商户门店编号无效\",\"result\":[{}],\"code\":\"\"}");
+				}
+			}
+		} catch (AlipayApiException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+	}
+}

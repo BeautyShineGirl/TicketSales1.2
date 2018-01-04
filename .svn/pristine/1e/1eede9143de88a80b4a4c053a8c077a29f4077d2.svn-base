@@ -1,0 +1,58 @@
+package cn.nvinfo.controller;
+
+
+
+import javax.annotation.Resource;
+import javax.servlet.http.HttpSession;
+
+import org.apache.log4j.Logger;
+import org.springframework.context.annotation.Scope;
+import org.springframework.stereotype.Controller;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.ResponseBody;
+
+
+
+import cn.nvinfo.domain.Custom;
+import cn.nvinfo.service.UserService;
+
+import cn.nvinfo.utils.CheckUtil;
+import cn.nvinfo.utils.Result;
+/**
+ * 测试框架及返回json
+ * @author yangli
+ *
+ */
+@Controller
+@Scope("prototype")
+@RequestMapping("user")
+public class UserAction{
+	private static Logger log=Logger.getLogger(UserAction.class);
+	@Resource
+	private UserService userService;
+	
+	/**
+	 * 登陆  杨立  2017-10-16
+	 * @param id
+	 * @return
+	 */
+	@RequestMapping("/login.action")
+	public @ResponseBody Object login(String loginName,String password,HttpSession httpSession){
+		//验证参数
+		if(!"".equals(CheckUtil.checkArgsNotNull(loginName,password))){
+			log.info(new Result(0,"参数错误"));
+			return new Result(0,"参数错误");
+		}
+		log.info("登陆申请："+","+loginName+","+password);
+		//查询用户是否存在
+		Custom user=userService.getUser(loginName,password);
+		httpSession.setAttribute("user", user);
+		if(user!=null){
+			log.info(new Result(1,"登陆成功",user));
+			return new Result(1,"登陆成功",user);
+		}else{
+			log.info(new Result(0,"该用户不存在，登录失败"));
+			return new Result(0,"该用户不存在，登录失败");
+		}
+	}
+}

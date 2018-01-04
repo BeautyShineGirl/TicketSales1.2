@@ -1,0 +1,111 @@
+package cn.nvinfo.controller;
+
+
+import java.util.ArrayList;
+import java.util.List;
+
+import javax.annotation.Resource;
+import javax.servlet.http.HttpSession;
+
+import org.apache.log4j.Logger;
+import org.springframework.context.annotation.Scope;
+import org.springframework.stereotype.Controller;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.ResponseBody;
+import org.springframework.web.bind.annotation.SessionAttributes;
+
+import cn.nvinfo.domain.Menu;
+import cn.nvinfo.domain.Staff;
+import cn.nvinfo.service.LoginService;
+import cn.nvinfo.utils.CheckUtil;
+import cn.nvinfo.utils.Result;
+
+/**
+ * 登陆	
+ * 修改密码
+ * 退出	
+ * @author yangli 2017-10-09
+ *
+ */
+@Controller
+@Scope("prototype")
+@SessionAttributes("staff") 
+//放到Session属性列表中，以便这个属性可以跨请求访问  
+@RequestMapping("login")
+public class LoginAction {
+	private static Logger log=Logger.getLogger(LoginAction.class);
+	@Resource
+	private LoginService loginService;
+
+	/**
+	 * 登陆  杨立  2017-10-09
+	 * @param id
+	 * @return
+	 */
+	@RequestMapping("/login.action")
+	public @ResponseBody Object login(String loginName,String password,HttpSession httpSession){
+		//验证参数
+		if(!"".equals(CheckUtil.checkArgsNotNull(loginName,password))){
+			log.info(new Result(0,"参数错误"));
+			return new Result(0,"参数错误");
+		}
+		log.info("登陆申请："+","+loginName+","+password);
+		//查询用户是否存在
+		Staff staff=loginService.getStaff(loginName,password);
+		
+		httpSession.setAttribute("staff", staff);
+		if(staff!=null){
+			log.info(new Result(1,"登陆成功",staff));
+			return new Result(1,"登陆成功",staff);
+		}else{
+			log.info(new Result(0,"登录失败"));
+			return new Result(0,"登录失败");
+		}
+	}
+	/**
+	 * 修改密码  杨立  2017-10-09
+	 * @param id
+	 * @return
+	 */
+	@RequestMapping("/editPassword.action")
+	public @ResponseBody Object editPassword(Integer id,String password){
+		//验证参数
+		if(!"".equals(CheckUtil.checkArgsNotNull(id,password))){
+			log.info(new Result(0,"参数错误"));
+			return new Result(0,"参数错误");
+		}
+		log.info("修改密码提交数据："+","+id+","+password);
+		//修改密码操作
+		int rows=loginService.editPassword(id,password);
+		if(rows>0){
+			log.info(new Result(1,"修改成功"));
+			return new Result(1,"修改成功");
+		}else{
+			log.info(new Result(0,"修改失败"));
+			return new Result(0,"修改失败");
+		}
+	}
+	/**
+	 * 重置密码  杨立  2017-10-09
+	 * @param id
+	 * @return
+	 */
+	@RequestMapping("/initPassword.action")
+	public @ResponseBody Object initPassword(Integer id){
+		//验证参数
+		if(!"".equals(CheckUtil.checkArgsNotNull(id))){
+			log.info(new Result(0,"参数错误"));
+			return new Result(0,"参数错误");
+		}
+		log.info("重置密码提交数据："+","+id);
+		//重置密码操作
+		int rows=loginService.initPassword(id);
+		if(rows>0){
+			log.info(new Result(1,"操作成功"));
+			return new Result(1,"操作成功");
+		}else{
+			log.info(new Result(0,"操作失败"));
+			return new Result(0,"操作失败");
+		}
+	}
+}

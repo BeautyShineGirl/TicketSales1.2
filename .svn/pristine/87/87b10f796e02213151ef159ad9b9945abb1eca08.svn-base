@@ -1,0 +1,88 @@
+package cn.nvinfo.alipay.servlet;
+
+
+import java.io.IOException;
+
+import javax.servlet.ServletException;
+import javax.servlet.http.HttpServlet;
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
+
+import org.apache.log4j.Logger;
+import org.springframework.web.context.WebApplicationContext;
+import org.springframework.web.context.support.WebApplicationContextUtils;
+
+
+import com.alipay.api.response.AlipayTradePrecreateResponse;
+
+import cn.nvinfo.domain.Order;
+import cn.nvinfo.service.UserService;
+import cn.nvinfo.utils.SMS;
+import cn.nvinfo.utils.StringUtil;
+/**
+ * 支付结果通知
+ * @author 杨立	2017-10-30
+ *
+ */
+public class AlipayPayResult extends HttpServlet {
+	private static Logger log=Logger.getLogger(AlipayPayResult.class);
+	private static final long serialVersionUID = 1L;
+
+	@Override
+	protected void doGet(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
+		doPost(req, resp);
+	}
+
+	@Override
+	protected void doPost(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
+		req.setCharacterEncoding("utf-8");
+		resp.setCharacterEncoding("utf-8");
+		//获取spring容器中的service
+		WebApplicationContext  ctx= WebApplicationContextUtils.getWebApplicationContext(this.getServletContext());
+		UserService userService = (UserService) ctx.getBean("userService",UserService.class);
+		AlipayTradePrecreateResponse response=new AlipayTradePrecreateResponse();
+		if(response != null && response.isSuccess()){
+			log.info("=====================================AlipayPayResult=====================================");
+			log.info("===============================================异步通知操作开始===============================================");
+			log.info("支付结果通知成功返回的数据："+System.getProperty("line.separator")+"\t\t\t\t"+
+					"支付结果通知成功返回的数据{"+System.getProperty("line.separator")+"\t\t\t\t\t"+
+			        "code:"+response.getCode()+System.getProperty("line.separator")+"\t\t\t\t\t"+
+			        "msg:" +response.getMsg()+System.getProperty("line.separator")+"\t\t\t\t\t"+
+			        "out_trade_no:" +response.getOutTradeNo()+System.getProperty("line.separator")+"\t\t\t\t\t"+
+					" }");
+			Order order = new Order();
+			order.setOrderState(0);//将订单表中的orderState改为0，证明，订单已支付成功
+			order.setTransaction_id("无");//保存微信订单号
+			order.setOrderId(response.getOutTradeNo());//商品订单号order表中的id
+			userService.updateOrder(order);//
+			//先从订单表中把该支付成功的订单查出来	2017-11-07
+			Order order2=userService.getOrderSuccess(response.getOutTradeNo());
+			//然后将短信通知所需的字段放入短信通知的方法中发送短信2017-11-07
+						SMS.sendSms(order2.getUserName(), order2.getUseDate(), order2.getProductName(),
+					order2.getOrderNumber()+"", response.getOutTradeNo(), order2.getOrderCode(), 
+					order2.getViewName(), order2.getUserPhone());
+			//保存入园凭证码
+			
+			log.info("接收到支付结果回传给支付宝服务器的数据：success");
+			resp.getWriter().println("success");
+		}else{
+			log.info("支付结果通知失败返回的数据："+System.getProperty("line.separator")+"\t\t\t\t"+
+					"支付结果通知失败返回的数据{"+System.getProperty("line.separator")+"\t\t\t\t\t"+
+			        "code:"+response.getCode()+response.getCode()+System.getProperty("line.separator")+"\t\t\t\t\t"+
+			        "msg:" +response.getMsg()+response.getMsg()+System.getProperty("line.separator")+"\t\t\t\t\t"+
+			        "sub_code:" +response.getSubCode()+response.getOutTradeNo()+System.getProperty("line.separator")+"\t\t\t\t\t"+
+			        "sub_msg:" +response.getSubMsg()+response.getQrCode()+System.getProperty("line.separator")+"\t\t\t\t"+
+			    "}"+
+			    "}");
+			//网关错误
+			if(!response.getCode().equals("10000")){
+				log.info("接收到支付结果回传给支付宝服务器的数据："+"{\"msg\":\"(网关错误)系统错误\",\"result\":[{}],\"code\":\"\"}");
+				resp.getWriter().write("{\"msg\":\"系统错误\",\"result\":[{}],\"code\":\"\"}");
+			}else{
+				log.info("接收到支付结果回传给支付宝服务器的数据：fail");
+				resp.getWriter().println("fail");
+			}
+		}
+		log.info("===============================================异步通知操作结束===============================================");
+	}
+}

@@ -1,0 +1,164 @@
+package cn.nvinfo.controller;
+
+import java.util.List;
+
+import javax.annotation.Resource;
+
+import org.apache.log4j.Logger;
+import org.springframework.context.annotation.Scope;
+import org.springframework.stereotype.Controller;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.ResponseBody;
+
+import cn.nvinfo.domain.Priority;
+import cn.nvinfo.service.PriorityService;
+import cn.nvinfo.utils.CheckUtil;
+import cn.nvinfo.utils.Pager;
+import cn.nvinfo.utils.Result;
+
+/**
+ *  基础设置      优先级设置
+ * @author 杨立   2017-09-19
+ *
+ */
+
+@Controller
+@Scope("prototype")
+@RequestMapping("priority")
+public class PriorityAction {
+	Logger log=Logger.getLogger(PriorityAction.class);
+	@Resource
+	private PriorityService priorityService;
+	private Integer pageSize=10;
+	/**
+	 *  分页查询
+	 * @param pageIndex
+	 * @param pageSize
+	 * @return
+	 */
+	@RequestMapping("/findPageData.action")
+	public @ResponseBody Object findPageData(Integer pageIndex){
+		 if(!"".equals(CheckUtil.checkArgsNotNull(pageIndex))){
+	            return new Result(0,"参数错误");
+	        }
+		Pager<Priority> pager=priorityService.getPager(pageIndex,pageSize);
+		log.debug("分页查询条件："+pageIndex);
+	    return new Result(1,"查询成功",pager);
+	}
+	
+
+	/**
+	 * 添加
+	 * @param name
+	 * @param priorty
+	 * @return
+	 */
+	@RequestMapping(value="/add.action")
+	public @ResponseBody Object add(String name,Integer priorty,Integer pageIndex){
+		//验证参数
+		if(!"".equals(CheckUtil.checkArgsNotNull(name,priorty))){
+			return new Result(0,"参数错误");
+		}
+		//判断传进来的参数priorty在优先级表中是否存在，若存在返回“priorty已存在”
+		List<Integer> list=priorityService.getPriority();
+		for (int i=0;i<list.size();i++) {
+			int oldPriority=list.get(i);
+			if(oldPriority==priorty){
+				return new Result(0,"添加失败，此优先级已存在");
+			}
+		}
+		//设置参数
+		Priority prioprty1=new Priority();
+		prioprty1.setName(name);
+		prioprty1.setPriority(priorty);
+		//添加操作
+		int rows= priorityService.add(prioprty1);
+		Pager<Priority> pager=priorityService.getPager(pageIndex,pageSize);
+		List<Priority> datas = pager.getDatas();
+		log.debug("添加提交的信息："+name+","+priorty+","+pageIndex);
+		//向字典表中添加票型
+		//int row=tiketTypeService.addDic(name);
+		if(rows>0){
+			return new Result(1,"添加成功",datas);
+		} else {
+			return new Result(0,"添加失败");
+		}
+				
+	}
+	/**
+	 * 修改数据回显
+	 * @param id
+	 * @return
+	 */
+	@RequestMapping("/editUI.action")
+	public @ResponseBody Object editUI(Integer id){
+		 
+
+		//验证参数
+		if(!"".equals(CheckUtil.checkArgsNotNull(id))){
+			return new Result(0,"参数错误");
+		}
+		//查询
+		Priority prioprty = priorityService.getById(id);
+		return new Result(1,"查询成功",prioprty);
+	}
+	
+	
+	/**
+	 * 修改
+	 * @param id
+	 * @param name
+	 * @param priorty
+	 * @return
+	 */
+	@RequestMapping("/edit.action")
+	public @ResponseBody Object edit(Integer id, String name,Integer priorty){
+		//验证参数
+		if(!"".equals(CheckUtil.checkArgsNotNull(id,name,priorty))){
+			return new Result(0,"参数错误");
+		}
+		//判断传进来的参数priorty在优先级表中是否存在，若存在返回“priorty已存在”
+		List<Integer> list=priorityService.getPriority();
+		for (int i=0;i<list.size();i++) {
+			int oldPriority=list.get(i);
+			if(oldPriority==priorty){
+				return new Result(0,"修改失败，此优先级已存在");
+			}
+		}
+		//设置参数
+		Priority prioprty1=new Priority();
+		prioprty1.setId(id);
+		prioprty1.setName(name);
+		prioprty1.setPriority(priorty);
+		//修改操作
+		int rows= priorityService.edit(prioprty1);
+		Priority prioprty = priorityService.getById(id);
+		log.debug("修改提交的信息："+id+","+name+","+priorty);
+		if(rows>0){
+			return new Result(1,"修改成功",prioprty);
+		} else {
+			return new Result(0,"修改失败");
+		}		
+	}
+	
+	/**
+	 * 删除
+	 * @param id
+	 * @return
+	 */
+	@RequestMapping("/delete.action")
+	public @ResponseBody Object delete(Integer id){
+		//验证参数
+		if(!"".equals(CheckUtil.checkArgsNotNull(id))){
+			return new Result(0,"参数错误");
+		}
+		//修改操作
+		int rows= priorityService.delete(id);
+		log.debug("删除提交的信息："+id);
+		if(rows>0){
+			return new Result(1,"删除成功");
+		} else {
+			return new Result(0,"删除失败");
+		}		
+	}
+}

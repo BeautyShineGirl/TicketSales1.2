@@ -1,0 +1,134 @@
+package cn.nvinfo.wxpay.servlet;
+
+
+import java.io.IOException;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.Map;
+
+import javax.servlet.ServletException;
+import javax.servlet.http.HttpServlet;
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
+
+import net.sf.json.JSONObject;
+
+import org.apache.http.client.methods.CloseableHttpResponse;
+import org.apache.http.impl.client.CloseableHttpClient;
+import org.apache.log4j.Logger;
+
+import cn.nvinfo.utils.HttpUtil;
+import cn.nvinfo.utils.MD5;
+import cn.nvinfo.utils.SignUtils;
+import cn.nvinfo.utils.SwiftpassConfig;
+import cn.nvinfo.utils.XmlUtils;
+
+
+/**
+ * 关闭订单
+ * @author 杨立
+ *
+ */
+public class CloseOrderServlet extends HttpServlet {
+	private static Logger log=Logger.getLogger(CloseOrderServlet.class);
+	private static final long serialVersionUID = 1L;
+	@Override
+	protected void doGet(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
+		doPost(req, resp);
+	}
+
+	@Override
+	protected void doPost(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
+		log.info("=====================================CloseOrderServlet=====================================");
+		log.info("=====================================关闭订单开始=====================================");
+		String out_trade_no = (String) req.getAttribute("out_trade_no");//商户订单号
+		//SortedMap<String,String> map = XmlUtils.getParameterMap(req);
+		Map<String,String> map=new HashMap<String, String>();
+		map.put("appid", "wxaea446e27328b87a");//公众账号id
+		map.put("mch_id", SwiftpassConfig.mch_id);//商户号
+		map.put("out_trade_no", out_trade_no);//商户订单号
+		map.put("nonce_str", String.valueOf(new Date().getTime()));//随即字符串
+		Map<String,String> params = SignUtils.paraFilter(map);
+		StringBuilder buf = new StringBuilder((params.size() +1) * 10);
+		SignUtils.buildPayParams(buf,params,false);
+		String preStr = buf.toString();
+		String sign = MD5.sign(preStr, "&key=" + SwiftpassConfig.key, "utf-8");
+		map.put("sign", sign);//签名
+		String reqUrl = "https://api.mch.weixin.qq.com/pay/unifiedorder";
+		CloseableHttpResponse response = null;
+		CloseableHttpClient client = null;
+		try {
+			log.info("请求关闭订单提交的签名："+sign);
+			log.info("请求关闭订单发送给微信服务器的xml数据："+System.getProperty("line.separator")+XmlUtils.toXml(map));
+			String resultPost = HttpUtil.post(reqUrl, XmlUtils.toXml(map));
+			if(resultPost != null){
+				Map<String,String> resultMap = XmlUtils.toMap(resultPost.getBytes(), "GB2312");
+				log.info("请求关闭订单微信服务器返回的数据:"+System.getProperty("line.separator")+XmlUtils.toXml(resultMap));
+				//处理返回的各种状态
+				//return_code和result_code都为success的时候
+				if("SUCCESS".equals(resultMap.get("return_code"))){
+					JSONObject obj=new JSONObject();
+					obj.put("result", "success");
+					obj.put("code", "1");
+					obj.put("message", "订单关闭成功");
+					log.info("返回前端的数据："+obj.toString());
+					resp.getOutputStream().print(obj.toString());
+					/*log.info("返回前端的数据:"+"{\"msg\":\"订单关闭成功\",\"result\":[{}],\"code\":\"\"}");
+					resp.getWriter().write("{\"msg\":\"订单关闭成功\",\"result\":[{}],\"code\":\"\"}");*/
+				}else{
+					
+					if("ORDERPAID".equals(resultMap.get("err_code"))){
+						JSONObject obj=new JSONObject();
+						obj.put("result", false);
+						obj.put("code", "0");
+						obj.put("message", "订单已支付");
+						log.info("返回前端的数据："+obj.toString());
+						resp.getOutputStream().print(obj.toString());
+						/*log.info("返回前端的数据:"+"{\"msg\":\"订单已支付\",\"result\":[{}],\"code\":\"\"}");
+						resp.getWriter().write("{\"msg\":\"订单已支付\",\"result\":[{}],\"code\":\"\"}");*/
+					}
+					if("ORDERCLOSED".equals(resultMap.get("err_code"))){
+						JSONObject obj=new JSONObject();
+						obj.put("result", false);
+						obj.put("code", "0");
+						obj.put("message", "订单已关闭");
+						log.info("返回前端的数据："+obj.toString());
+						resp.getOutputStream().print(obj.toString());
+						/*log.info("返回前端的数据:"+"{\"msg\":\"订单已关闭\",\"result\":[{}],\"code\":\"\"}");
+						resp.getWriter().write("{\"msg\":\"订单已关闭\",\"result\":[{}],\"code\":\"\"}");*/
+					}
+					if("SYSTEMERROR".equals(resultMap.get("err_code"))){
+						doPost(req,resp);
+					}
+					if("XML_FORMAT_ERROR".equals(resultMap.get("err_code"))){
+						for (int i = 0; i < 1; i++) {
+							doPost(req,resp);
+						}
+					}
+					if("REQUIRE_POST_METHOD".equals(resultMap.get("err_code"))){
+						for (int i = 0; i < 1; i++) {
+							doPost(req,resp);
+						}
+					}
+					//签名错误
+					if("SIGNERROR".equals(resultMap.get("err_code"))){
+						for (int i = 0; i < 1; i++) {
+							doPost(req,resp);
+						}
+					}
+				}
+			}
+		} catch (Exception e) {
+			e.printStackTrace();
+		} finally {
+			if(response != null){
+				response.close();
+			}
+			if(client != null){
+				client.close();
+			}
+		}
+		log.info("=====================================关闭订单结束=====================================");
+		
+	}
+}

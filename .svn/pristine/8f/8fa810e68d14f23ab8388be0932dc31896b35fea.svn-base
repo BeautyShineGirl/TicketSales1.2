@@ -1,0 +1,17 @@
+package cn.nvinfo.dao;
+
+import java.util.List;
+
+import cn.nvinfo.domain.User;
+
+public interface UserDao {
+
+	void saveTwoUser(User user);
+
+	int getAllCount();
+
+	List<User> getPageDate(Integer pageIndex, Integer pageSize);
+
+	int edit(Integer id, String deptId, String name);
+
+}

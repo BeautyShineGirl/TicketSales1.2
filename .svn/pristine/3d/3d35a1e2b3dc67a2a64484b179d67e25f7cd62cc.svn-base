@@ -1,0 +1,178 @@
+package cn.nvinfo.domain;
+
+import java.util.List;
+
+/**
+ * 分销商实体
+ * @author 杨立   2017-09-18
+ *
+ */
+public class Custom {
+
+	private int id;//编号
+	private String idString;
+	private String name;//分销商名称
+	
+	private String userName;//用户名
+	
+	private String linkMan;//联系人姓名
+	
+	private String phone;//电话
+	
+	private double creditLimit;//信誉额度
+	
+	private double cashMoney;//预存现金
+	
+	private int state;//用户状态   0未审核 1正常    2审核不通过  3停用
+	
+	private String stateName;//分销商状态名字	用于修改时前端传数据
+	
+	private int level;//分销商等级   0 ，1等级越高，数字越小
+	
+	private String url;//合同地址
+	
+	private String urlName;//合同名字
+	
+	private int custType;//分销商类别
+	
+	private String password;
+	
+	private List<String> urlList;//给前端返回合同回显的时候，返回url集合
+
+	public Custom() {
+		super();
+	}
+
+	public int getId() {
+		return id;
+	}
+
+	public void setId(int id) {
+		this.id = id;
+	}
+
+	public String getName() {
+		return name;
+	}
+
+	public void setName(String name) {
+		this.name = name;
+	}
+
+	public String getUserName() {
+		return userName;
+	}
+
+	public void setUserName(String userName) {
+		this.userName = userName;
+	}
+
+	public String getLinkMan() {
+		return linkMan;
+	}
+
+	public void setLinkMan(String linkMan) {
+		this.linkMan = linkMan;
+	}
+
+	public String getPhone() {
+		return phone;
+	}
+
+	public void setPhone(String phone) {
+		this.phone = phone;
+	}
+
+	public double getCreditLimit() {
+		return creditLimit;
+	}
+
+	public void setCreditLimit(double creditLimit) {
+		this.creditLimit = creditLimit;
+	}
+
+	public double getCashMoney() {
+		return cashMoney;
+	}
+
+	public void setCashMoney(double cashMoney) {
+		this.cashMoney = cashMoney;
+	}
+
+	public int getState() {
+		return state;
+	}
+
+	public void setState(int state) {
+		this.state = state;
+	}
+
+
+	public String getUrl() {
+		return url;
+	}
+
+	public void setUrl(String url) {
+		this.url = url;
+	}
+
+
+	public int getCustType() {
+		return custType;
+	}
+
+	public void setCustType(int custType) {
+		this.custType = custType;
+	}
+
+	public int getLevel() {
+		return level;
+	}
+
+	public void setLevel(int level) {
+		this.level = level;
+	}
+
+	public String getPassword() {
+		return password;
+	}
+
+	public void setPassword(String password) {
+		this.password = password;
+	}
+
+	public String getStateName() {
+		return stateName;
+	}
+
+	public void setStateName(String stateName) {
+		this.stateName = stateName;
+	}
+
+	public String getIdString() {
+		return idString;
+	}
+
+	public void setIdString(String idString) {
+		this.idString = idString;
+	}
+
+	public String getUrlName() {
+		return urlName;
+	}
+
+	public void setUrlName(String urlName) {
+		this.urlName = urlName;
+	}
+
+	public List<String> getUrlList() {
+		return urlList;
+	}
+
+	public void setUrlList(List<String> urlList) {
+		this.urlList = urlList;
+	}
+
+	
+	
+}

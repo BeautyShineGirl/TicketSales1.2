@@ -1,0 +1,86 @@
+package cn.nvinfo.dao;
+
+import java.util.List;
+
+import cn.nvinfo.domain.Custom;
+import cn.nvinfo.domain.CustomType;
+import cn.nvinfo.tools.CustomList;
+
+
+/**
+ *  景区管理    
+ * @author 杨立   2017-09-19
+ *
+ */
+public interface CustomDao {
+
+	/*
+	 * 分页查询获得总数	杨立  2017-09-26
+	 */
+	int getAllCount(Integer id,Integer logic,
+			String name, String linkName,String custType,Integer level);
+	/*
+	 * 分页查询获得当前页数据	杨立  2017-09-26
+	 */
+	List<CustomList> getPageDate(Integer pageIndex, Integer pageSize,Integer id,Integer logic,
+			String name, String linkName,String custType,Integer level);
+	/*
+	 * 修改数据回显  杨立  2017-09-27
+	 */
+	Custom getCustom(Integer id);
+	/*
+	 *  查询分销商类别的集合 杨立  2017-09-27
+	 */
+	List<CustomType> getCustomType();
+	/*
+	 * 从字典表中查询分销商等级	杨立  2017-09-27
+	 */
+	List<String> getLevel();
+	/*
+	 * 修改	杨立	2017-09-27
+	 */
+	int edit(Custom custom);
+	/*
+	 *  删除  	杨立   2017-09-27
+	 */
+	int delete(Integer id);
+	/*
+	 * 审核分页显示	 获得总页数		杨立   2017-09-27
+	 */
+	int getCheckAllCount();
+	/*
+	 * 审核分页显示	 获得当前页数据		杨立   2017-09-27
+	 */
+	List<CustomList> getCheckPageDate(Integer pageIndex, Integer pageSize);
+	/*
+	 * 审核通过操作	杨立	2017-09-27
+	 */
+	int editCheck(Integer id);
+	/*
+	 * 合同管理数据回显	杨立	2017-09-28
+	 */
+	List<Custom> getCuseom();
+	/*
+	 * 合同上传	杨立	2017-09-28
+	 */
+	int upditURL(Integer id, String url);
+	/*
+	 * 审核不通过操作	杨立	2017-10-09
+	 */
+	int checkNotPass(Integer id);
+	/*
+	 * 分销商注册  杨立   2017-10-16
+	 */
+	int add(Custom custom);
+	/*
+	 * 检查用户名是否已存在，如果已存在，则返回用户名已存在
+	 */
+	List<String> checkUserName(String userName);
+	/*
+	 * 再删除分销商之前，先查询该分销商是否有产品，若有，则返回删除失败
+	 */
+	int getProduct();
+
+
+	
+}

@@ -1,0 +1,4 @@
+DriverClass     = com.mysql.jdbc.Driver
+url             = jdbc\:mysql\://localhost\:3306/ticketSales
+user            = root
+password        =root

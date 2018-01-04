@@ -1,0 +1,253 @@
+package cn.nvinfo.service.imp;
+
+
+
+import java.util.List;
+
+import javax.annotation.Resource;
+import javax.swing.text.View;
+
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import cn.nvinfo.dao.UserDao;
+import cn.nvinfo.domain.Custom;
+import cn.nvinfo.domain.Order;
+import cn.nvinfo.domain.Product;
+import cn.nvinfo.domain.ViewMessage;
+import cn.nvinfo.service.UserService;
+import cn.nvinfo.tools.OrderList;
+import cn.nvinfo.utils.Pager;
+
+
+@Service("userService")
+@Transactional
+public class UserServiceImp implements UserService {
+
+	@Resource
+	private UserDao userDao;
+
+
+	/*
+	 * 登陆  杨立  2017-10-16(non-Javadoc)
+	 * @see cn.nvinfo.service.UserService#getUser(java.lang.String, java.lang.String)
+	 */
+	public Custom getUser(String userName, String password) {
+		return userDao.getUser(userName,password);
+	}
+
+	/*
+	 * 添加订单到数据库	YANGLI 2017-10-18(non-Javadoc)
+	 * @see cn.nvinfo.service.UserService#addOrder(cn.nvinfo.domain.Order)
+	 */
+	public int addOrder(Order order) {
+		return userDao.addOrder(order);
+	}
+	/*
+	 * 修改订单状态为为0，支付成功，添加微信订单号到order表	杨立	2017-10-26(non-Javadoc)
+	 * @see cn.nvinfo.service.UserService#updateOrder(cn.nvinfo.domain.Order)
+	 */
+	public int updateOrder(Order order) {
+		return userDao.updateOrder(order);
+	}
+
+	/*
+	 * 在本地数据库中查询，若查询状态不是orderState为3，则发起向微信退款查询（refundQueryServlet）(non-Javadoc)
+	 * @see cn.nvinfo.service.UserService#queryRefund(java.lang.Integer)
+	 */
+	public int queryRefund(Integer id) {
+		return userDao.queryRefund(id);
+	}
+	/*
+	 * 向微信发出查询退款申请返回退款成功，(non-Javadoc)
+	 * @see cn.nvinfo.service.UserService#updateOrderState(java.lang.Integer)
+	 */
+	public void updateOrderState(String id) {
+		userDao.updateOrderState(id);
+	}
+	/*
+	 * 查询提交的订单 是否已支付，如未支付orderState=1，则向微信发出支付请求	杨立	2017-10-26(non-Javadoc)
+	 * @see cn.nvinfo.service.UserService#selectOrderState(java.lang.Integer)
+	 */
+	public int selectOrderState(String id) {
+		return userDao.selectOrderState(id);
+	}
+	/*
+	 * 修改状态为0 支付成功(non-Javadoc)
+	 * @see cn.nvinfo.service.UserService#editState(java.lang.Integer)
+	 */
+	public void editState(String id) {
+		userDao.editState(id);
+
+	}
+	/*
+	 * 轮播图	返回优先级0到4的产品及每个产品所对应的景区照片所对应的集合(non-Javadoc)
+	 * @see cn.nvinfo.service.UserService#getProduct()
+	 */
+	public List<Product> getProduct() {
+		
+		return userDao.getProduct();
+	}
+
+	/*
+	 * 优先级最高的产品	优先级为5	杨立	2017-11-1(non-Javadoc)
+	 * @see cn.nvinfo.service.UserService#getExpeciallyProduct()
+	 */
+	public List<Product> getExpeciallyProduct() {
+		return userDao.getExpeciallyProduct();
+	}
+
+	/*
+	 *景点游	优先级为6的景区 按优先级排列   从打到小的顺序	杨立	2017-11-1(non-Javadoc)
+	 * @see cn.nvinfo.service.UserService#getMoreProduct()
+	 */
+	public List<Product> getViewTravalPro() {
+		return userDao.getViewTravalPro();
+	}
+
+	/*
+	 * 周边游	优先级为7的景区  且不是西安的景区的产品	杨立	2017-11-1(non-Javadoc)
+	 * @see cn.nvinfo.service.UserService#getRimTravalPro()
+	 */
+	public List<Product> getRimTravalPro() {
+		return userDao.getRimTravalPro();
+	}
+
+	/*
+	 * 国内游	优先级为8的景区  	杨立	2017-11-1(non-Javadoc)
+	 * @see cn.nvinfo.service.UserService#getNationalTravalPro()
+	 */
+	public List<Product> getNationalTravalPro() {
+		return userDao.getNationalTravalPro();
+	}
+
+	/*
+	 * 点击更多时出现所有产品	按优先级顺序排列  	杨立	2017-11-1(non-Javadoc)
+	 * @see cn.nvinfo.service.UserService#getMore()
+	 */
+	public List<Product> getExpeciallyMore() {
+		return userDao.getExpeciallyMore();
+	}
+	/*
+	 * 根据id返回产品详情  杨立  2017-09-25(non-Javadoc)
+	 * @see cn.nvinfo.service.UserService#getById(java.lang.Integer)
+	 */
+	public Product getById(Integer id) {
+		return userDao.getById(id);
+	}
+	/*
+	 * 分销商页面搜索框  杨立  2017-11-3(non-Javadoc)
+	 * @see cn.nvinfo.service.UserService#getKeyWordProduct(java.lang.String)
+	 */
+	public List<Product> getKeyWordProduct(String keyWord) {
+		return userDao.getKeyWordProduct(keyWord);
+	}
+	/*
+	 * //先从订单表中把该支付成功的订单查出来	2017-11-07(non-Javadoc)
+	 * @see cn.nvinfo.service.UserService#getOrderSuccess(java.lang.String)
+	 */
+	public Order getOrderSuccess(String outTradeNo) {
+		return userDao.getOrderSuccess(outTradeNo);
+	}
+	/*
+	 * 景点游点击更多  	优先级为6  	杨立	2017-11-07(non-Javadoc)
+	 * @see cn.nvinfo.service.UserService#viewTravalMore()
+	 */
+	public List<Product> viewTravalMore() {
+		return userDao.viewTravalMore();
+	}
+	/*
+	 * 周边游点击更多 	优先级为7  	杨立	2017-11-07(non-Javadoc)
+	 * @see cn.nvinfo.service.UserService#getRimTraval()
+	 */
+	public List<Product> getRimTraval() {
+		return userDao.getRimTraval();
+	}
+	/*
+	 *国内游点击更多   优先级为8	杨立	2017-11-07(non-Javadoc)
+	 * @see cn.nvinfo.service.UserService#getNationalTravalMore()
+	 */
+	public List<Product> getNationalTravalMore() {
+		return userDao.getNationalTravalMore();
+	}
+	//获得sort为1的景区的集合	杨立	2017-11-08
+	public List<ViewMessage> getExpeciallyView() {
+		return userDao.getExpeciallyView();
+	}
+	//获得sort为2的景区的集合	杨立	2017-11-08
+	public List<ViewMessage> getViewTravalView() {
+		return userDao.getViewTravalView();
+	}
+	//周边游景区信息	获得sort为3的景区的集合	杨立	2017-11-08
+	public List<ViewMessage> getRimTravalView() {
+		return userDao.getRimTravalView();
+	}
+	//国内游景区信息	获得sort为4的景区的集合	杨立	2017-11-08
+	public List<ViewMessage> getNationalTravalView() {
+		return userDao.getNationalTravalView();
+	}
+	//查询根据景区id返回产品List详情	yangli	2017-11-08
+	public List<Product> getByIdList(Integer id) {
+		return userDao.getByIdList(id);
+	}
+	//在本地数据库中查询此订单是否已经存在	2017-11-09
+	public List<String> getByOrderId(String orderId) {
+		return userDao.getByOrderId(orderId);
+	}
+	/*
+	 * 查询分销商成功支付或者退款的订单
+	 * 支付成功订单查询 state=0
+	 * 退款成功订单state=3	杨立	2017-11-13	
+	 */
+	public List<Order> getStateOerder(Integer userId, Integer state) {
+		return userDao.getStateOerder(state,userId);
+	}
+	/*
+	 * 分销商用户删除已退款订单 state=3	2017-11-14(non-Javadoc)
+	 * @see cn.nvinfo.service.UserService#deleteRefund(java.lang.Integer)
+	 */
+	public int deleteRefund(Integer id) {
+		return userDao.deleteRefund(id);
+	}
+	//获取订单的出发日期	2017-11-14
+	public String queryUseDate(String id) {
+		return userDao.queryUseDate(id);
+	}
+	//根据产品编号，查询第三方的产品编号 	yangli 2017-12-08
+	public int getProductNo(Integer productId) {
+		return userDao.getProductNo(productId);
+	}
+	//获取order_id,order_money,order_state,保存到数据库	2017-12-08
+	public int updateAnotherOrder(Order order1) {
+		return userDao.updateAnotherOrder(order1);
+	}
+	//将第三方给客户返回的短信验证码保存到orderCode中	yangli 2017-12-11
+	public int insertCode(Order order3) {
+		return userDao.insertCode(order3);
+	}
+	//根据供应商id得到供应商的名字	yangli	2017-12-11
+	public String getSupplierName(int supplierId) {
+		return  userDao.getSupplierName(supplierId);
+	}
+	//得到订单的产品数量，orderNumber ，然后更新产品表中的num		yangli	2017-12-12
+	public int updateProductNum(Integer newNum, Integer productId) {
+		return userDao.updateProductNum(newNum,  productId);
+	}
+	//退款成功，更新SupplierOrderState
+	public int updateSuplierState(Order order3) {
+		return userDao.updateSuplierState(order3);
+	}
+	//把订单状态改成5 为用户下单支付成功，向第三方下单失败，原因是第三方返回的msg	2017-12-08	yangli
+	public int updateSupplierOrder(Order order1) {
+		return userDao. updateSupplierOrder(order1);
+	}
+
+	/*
+	 * sort为0的景区	杨立	2017-11-1(non-Javadoc)
+	 * @see cn.nvinfo.service.UserService#getScopeView()
+	public ViewMessage getScopeView() {
+		return userDao.getScopeView();
+	}
+	 */
+
+}

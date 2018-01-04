@@ -1,0 +1,109 @@
+package cn.nvinfo.dao.imp;
+
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+import javax.annotation.Resource;
+
+import org.mybatis.spring.SqlSessionTemplate;
+import org.springframework.stereotype.Repository;
+
+import cn.nvinfo.dao.OrderDao;
+import cn.nvinfo.tools.OrderList;
+/**
+ * 订单管理
+ * @author 杨立   2017-09-28
+ *
+ */
+@Repository
+public class OrderDaoImp implements OrderDao {
+
+	@Resource
+	private SqlSessionTemplate template;
+	/*
+	 *  获得订单总数	杨立	2017-09-28(non-Javadoc)
+	 * @see cn.nvinfo.dao.OrderDao#getAllCount(java.lang.Integer, java.lang.String, java.lang.String, java.lang.Integer, java.lang.String, java.lang.String)
+	 */
+	public int getAllCount(String orderId, String product, String view,
+			Integer state, String custom, String supplier, Integer power_id, Integer staff_id,
+			String createDate,String useDate,String verDate) {
+		Map<String,Object> map=new HashMap<String, Object>();
+		map.put("orderId", orderId);
+		map.put("product", product);
+		map.put("view", view);
+		map.put("state", state);
+		map.put("custom", custom);
+		map.put("supplier", supplier);
+		map.put("power_id", power_id);
+		map.put("staff_id", staff_id);
+		map.put("createDate", createDate);
+		map.put("useDate", useDate);
+		map.put("verDate", verDate);
+		return template.selectOne("order.getAllCount",map);
+	} 
+	
+	/*
+	 * 获得当前页的订单数据	杨立	2017-09-28(non-Javadoc)
+	 * @see cn.nvinfo.dao.OrderDao#getPageDate(java.lang.Integer, java.lang.Integer, java.lang.Integer, java.lang.String, java.lang.String, java.lang.Integer, java.lang.String, java.lang.String)
+	 */
+	public List<OrderList> getPageDate(Integer pageIndex, Integer pageSize,
+			String orderId, String product, String view, Integer state,
+			String custom, String supplier, Integer power_id, Integer staff_id,
+			String createDate,String useDate,String verDate) {
+		Map<String,Object> map=new HashMap<String, Object>();
+		map.put("pageIndex", (pageIndex-1)*pageSize);
+		map.put("pageSize", pageSize);
+		map.put("orderId", orderId);
+		map.put("product", product);
+		map.put("view", view);
+		map.put("state", state);
+		map.put("custom", custom);
+		map.put("supplier", supplier);
+		map.put("power_id", power_id);
+		map.put("staff_id", staff_id);
+		map.put("createDate", createDate);
+		map.put("useDate", useDate);
+		map.put("verDate", verDate);
+		return template.selectList("order.getPageDate", map);
+	}
+	/*
+	 *未支付账单查询 state=1
+	 * 已核销订单state=2   获得订单总数	杨立	2017-09-28
+	 * startTime 出游日期
+	 * endTime 下单日期
+	 * (non-Javadoc)
+	 * @see cn.nvinfo.dao.OrderDao#getNotPayAllCount(java.lang.String, java.lang.String)
+	 */
+	public int getStateAllCount(String startTime, String endTime, Integer state, Integer power_id, Integer staff_id) {
+		Map<String,Object> map=new HashMap<String, Object>();
+		map.put("useDate", startTime);
+		map.put("createDate", endTime);
+		map.put("state", state);
+		map.put("power_id", power_id);
+		map.put("staff_id", staff_id);
+		return template.selectOne("order.getStateAllCount",map);
+	}
+	/*
+	 * 未支付账单查询 state=0
+	 * 已核销订单state=2	获得当前页的订单数据	杨立	2017-09-28
+	 * 
+	 * startTime 出游日期
+	 * endTime 下单日期(non-Javadoc)
+	 * @see cn.nvinfo.dao.OrderDao#getNotPayPageDate(java.lang.Integer, java.lang.Integer, java.lang.String, java.lang.String)
+	 */
+	public List<OrderList> getStatePageDate(Integer pageIndex,
+			Integer pageSize, String startTime, String endTime, Integer state, Integer power_id, Integer staff_id) {
+		Map<String,Object> map=new HashMap<String, Object>();
+		map.put("pageIndex", (pageIndex-1)*pageSize);
+		map.put("pageSize", pageSize);
+		map.put("useDate", startTime);
+		map.put("createDate", endTime);
+		map.put("state", state);
+		map.put("power_id", power_id);
+		map.put("staff_id", staff_id);
+		return template.selectList("order.getStatePageDate", map);
+	}
+
+
+}

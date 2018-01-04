@@ -1,0 +1,197 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="user">
+  	<!-- 用户登陆  杨立  2017-10-16 -->
+  	<select id="getUser" resultType="cn.nvinfo.domain.Custom">
+		select * from user where userNasme=#{userNasme} and password = #{password}
+  	</select>
+  	<!-- 微信支付	杨立	2017-10-18 -->
+  	<!-- 查询订单 	杨立	2017-10-18 -->
+  	<select id="getOrder" resultType="cn.nvinfo.domain.Order">
+		select * from orderTable where orderId=#{out_trade_no}
+  	</select>
+  	<!-- *获得订单的商品描述	yangli 	2017-10-18	  例如冰雪大世界成人票（产品名字加票型） -->
+  	<select id="getBody" resultType="java.lang.String">
+		select p.name,p.ticketType from orderTable o 
+		left join product p on o.product_id = p.id
+		where o.orderId = #{out_trade_no}
+  	</select>
+  	<!-- 获得订单的总金额 	杨立	2017-10-18 -->
+  	<select id="getTotalFee" resultType="java.lang.String">
+		select price from orderTable where orderId=#{out_trade_no}
+  	</select>
+  	<!-- 添加订单到数据库	YANGLI 2017-10-18-->
+  	<insert id="addOrder" parameterType="cn.nvinfo.domain.Order" useGeneratedKeys="true">
+  		insert into orderTable (id,product_id,cust_id,supplier_id,view_id,orderId,productName,custName,custOrder,supplierOrder,ispay,orderState,payId,
+  		orderNumber,unitPrice,price,createDate,useDate,orderCode,userPhone,userName,idCard,remark) 
+  		values(#{id},#{productId},#{customId},#{supplierId},#{viewId},#{orderId},#{productName},#{custName},#{custOrder},#{supplierOrder},#{ispay},
+  		#{orderState},#{payId},#{orderNumber},#{unitPrice},#{price},#{createDate},#{useDate},#{orderCode},#{userPhone},#{userName},#{idCard},#{remark})
+  	</insert>
+  		<!-- 先从订单表中把该支付成功的订单查出来	2017-11-07-->
+  	<select id="getOrderSuccess" resultType="cn.nvinfo.domain.Order">
+		select * from orderTable where orderId=#{outTradeNo}
+  	</select>
+  	<!-- 修改订单状态为为0，支付成功，添加微信订单号到order表	杨立	2017-10-26  -->
+  	<update id="updateOrder" parameterType="cn.nvinfo.domain.Order" useGeneratedKeys="true">
+  		update orderTable set orderState=#{orderState},transaction_id=#{transaction_id},orderCode=#{orderCode} where orderId=#{orderId} 
+  	</update>
+  	<!-- 在本地数据库中查询，若查询状态不是orderState为3，则发起向微信退款查询（refundQueryServlet）YANGLI 2017-10-26 -->
+  	<select id="queryRefund" resultType="int">
+		select orderState from orderTable where id=#{id}
+  	</select>
+  	<!-- 向微信发出查询退款申请返回退款成功，	yangli 	2017-10-26  -->
+  	<update id="updateOrderState" parameterType="cn.nvinfo.domain.Order" useGeneratedKeys="true">
+  		update orderTable set orderState=3 where orderId=#{orderId} 
+  	</update>
+  	 <!--  查询提交的订单 是否已支付，如未支付orderState=1，则向微信发出支付请求	杨立	2017-10-26 -->
+  	<select id="selectOrderState" resultType="int">
+		select state from orderTable where id=#{id}
+  	</select>
+  	<!-- 修改状态为0 支付成功	查询支付订单	杨立	2017-10-26  -->
+  	<update id="editState" parameterType="cn.nvinfo.domain.Order" useGeneratedKeys="true">
+  		update orderTable set orderState=0 where orderId=#{orderId} 
+  	</update>
+  	
+  	<!--  sort为0的景区	杨立	2017-11-1 
+  	<select id="getScopeView" resultType="cn.nvinfo.domain.ViewMessage">
+		select	* from viewMessage where sort=0 
+  	</select>
+  	-->
+  	
+  	<!-- 此段代码待优化 -->
+  		 <!-- 轮播图	返回优先级0到4的产品及每个产品所对应的景区照片所对应的集合-->
+  	<select id="getProduct" resultType="cn.nvinfo.domain.Product">
+		select pro.id,pro.view_id,pro.supplier_id,pro.ticketType,pro.priority_id,pro.customName,
+		pro.name,pro.endPrice,pro.marketPrice,pro.salePrice,pro.isSale,pro.startTime,pro.endTime,pro.dailySale,
+		pro.num,pro.orderTime,pro.isCancel,pro.type,pro.notice,pro.costInside,pro.costOutside,pro.remark,pro.userType,
+		pro.priorityType,pro.method,pro.customId,
+		v.picture picture from product pro
+		left join priority prt on prt.id= pro.priority_id
+		left join viewMessage v on pro.view_id=v.id
+		where prt.priority&gt;=0 and prt.priority&lt;=4
+		order by prt.priority 
+  	</select>
+  	 <!--  优先级最高的产品	优先级为5	杨立	2017-11-1 -->
+  	<select id="getExpeciallyProduct" resultType="cn.nvinfo.domain.Product">
+		select pro.id,pro.view_id,pro.supplier_id,pro.ticketType,pro.priority_id,pro.customName,
+		pro.name,pro.endPrice,pro.marketPrice,pro.salePrice,pro.isSale,pro.startTime,pro.endTime,pro.dailySale,
+		pro.num,pro.orderTime,pro.isCancel,pro.type,pro.notice,pro.costInside,pro.costOutside,pro.remark,pro.userType,
+		pro.priorityType,pro.method,pro.customId,
+		v.picture picture from product pro
+		left join priority prt on prt.id= pro.priority_id
+		left join viewMessage v on pro.view_id=v.id
+		where prt.priority=5
+		order by prt.priority 
+  	</select>
+  	<!-- 特别推荐 	 点击更多时出现所有产品	按优先级顺序排列  	杨立	2017-11-1 -->
+  	<select id="getExpeciallyMore" resultType="cn.nvinfo.domain.Product">
+		select pro.id,pro.view_id,pro.supplier_id,pro.ticketType,pro.priority_id,pro.customName,
+		pro.name,pro.endPrice,pro.marketPrice,pro.salePrice,pro.isSale,pro.startTime,pro.endTime,pro.dailySale,
+		pro.num,pro.orderTime,pro.isCancel,pro.type,pro.notice,pro.costInside,pro.costOutside,pro.remark,pro.userType,
+		pro.priorityType,pro.method,pro.customId,
+		v.picture picture from product pro
+		left join priority prt on prt.id= pro.priority_id
+		left join viewMessage v on pro.view_id=v.id
+		where prt.priority=5
+		order by prt.priority 
+  	</select>
+  	<!-- 景点游	优先级为6的景区 按优先级排列   从打到小的顺序	杨立	2017-11-1 -->
+  	<select id="getViewTravalPro" resultType="cn.nvinfo.domain.Product">
+		select pro.id,pro.view_id,pro.supplier_id,pro.ticketType,pro.priority_id,pro.customName,
+		pro.name,pro.endPrice,pro.marketPrice,pro.salePrice,pro.isSale,pro.startTime,pro.endTime,pro.dailySale,
+		pro.num,pro.orderTime,pro.isCancel,pro.type,pro.notice,pro.costInside,pro.costOutside,pro.remark,pro.userType,
+		pro.priorityType,pro.method,pro.customId,
+		v.picture picture from product pro
+		left join priority prt on prt.id= pro.priority_id
+		left join viewMessage v on pro.view_id=v.id
+		where prt.priority=6
+		order by prt.priority 
+  	</select>
+  	<!--  景点游点击更多  	优先级为6  	杨立	2017-11-07 -->
+  	<select id="viewTravalMore" resultType="cn.nvinfo.domain.Product">
+		select pro.id,pro.view_id,pro.supplier_id,pro.ticketType,pro.priority_id,pro.customName,
+		pro.name,pro.endPrice,pro.marketPrice,pro.salePrice,pro.isSale,pro.startTime,pro.endTime,pro.dailySale,
+		pro.num,pro.orderTime,pro.isCancel,pro.type,pro.notice,pro.costInside,pro.costOutside,pro.remark,pro.userType,
+		pro.priorityType,pro.method,pro.customId,
+		v.picture picture from product pro
+		left join priority prt on prt.id= pro.priority_id
+		left join viewMessage v on pro.view_id=v.id
+		where prt.priority=6
+		order by prt.priority 
+  	</select>
+  	<!-- 周边游	优先级为7的景区  且不是西安的景区的产品	杨立	2017-11-1 -->
+  	<select id="getRimTravalPro" resultType="cn.nvinfo.domain.Product">
+		select pro.id,pro.view_id,pro.supplier_id,pro.ticketType,pro.priority_id,pro.customName,
+		pro.name,pro.endPrice,pro.marketPrice,pro.salePrice,pro.isSale,pro.startTime,pro.endTime,pro.dailySale,
+		pro.num,pro.orderTime,pro.isCancel,pro.type,pro.notice,pro.costInside,pro.costOutside,pro.remark,pro.userType,
+		pro.priorityType,pro.method,pro.customId,
+		v.picture picture from product pro
+		left join priority prt on prt.id= pro.priority_id
+		left join viewMessage v on pro.view_id=v.id
+		where prt.priority=7 and v.city<![CDATA[ <> ]]>'西安市'
+		order by prt.priority 
+  	</select>
+  	<!--  周边游点击更多 	优先级为7  	杨立	2017-11-07-->
+  	<select id="getRimTraval" resultType="cn.nvinfo.domain.Product">
+		select pro.id,pro.view_id,pro.supplier_id,pro.ticketType,pro.priority_id,pro.customName,
+		pro.name,pro.endPrice,pro.marketPrice,pro.salePrice,pro.isSale,pro.startTime,pro.endTime,pro.dailySale,
+		pro.num,pro.orderTime,pro.isCancel,pro.type,pro.notice,pro.costInside,pro.costOutside,pro.remark,pro.userType,
+		pro.priorityType,pro.method,pro.customId,
+		v.picture picture from product pro
+		left join priority prt on prt.id= pro.priority_id
+		left join viewMessage v on pro.view_id=v.id
+		where prt.priority=7 and v.city<![CDATA[ <> ]]>'西安市'
+		order by prt.priority
+  	</select>
+  	<!-- 国内游	优先级为8的景区  	杨立	2017-11-1 -->
+  	<select id="getNationalTravalPro" resultType="cn.nvinfo.domain.Product">
+		select pro.id,pro.view_id,pro.supplier_id,pro.ticketType,pro.priority_id,pro.customName,
+		pro.name,pro.endPrice,pro.marketPrice,pro.salePrice,pro.isSale,pro.startTime,pro.endTime,pro.dailySale,
+		pro.num,pro.orderTime,pro.isCancel,pro.type,pro.notice,pro.costInside,pro.costOutside,pro.remark,pro.userType,
+		pro.priorityType,pro.method,pro.customId,
+		v.picture picture from product pro
+		left join priority prt on prt.id= pro.priority_id
+		left join viewMessage v on pro.view_id=v.id
+		where prt.priority=8 
+		order by prt.priority 
+  	</select>
+  	<!--  国内游点击更多   优先级为8	杨立	2017-11-07-->
+  	<select id="getNationalTravalMore" resultType="cn.nvinfo.domain.Product">
+		select pro.id,pro.view_id,pro.supplier_id,pro.ticketType,pro.priority_id,pro.customName,
+		pro.name,pro.endPrice,pro.marketPrice,pro.salePrice,pro.isSale,pro.startTime,pro.endTime,pro.dailySale,
+		pro.num,pro.orderTime,pro.isCancel,pro.type,pro.notice,pro.costInside,pro.costOutside,pro.remark,pro.userType,
+		pro.priorityType,pro.method,pro.customId,
+		v.picture picture from product pro
+		left join priority prt on prt.id= pro.priority_id
+		left join viewMessage v on pro.view_id=v.id
+		where prt.priority=8
+		order by prt.priority 
+  	</select>
+  	<!--  根据id返回产品详情  杨立  2017-11-1-->
+  	<select id="getById" resultType="cn.nvinfo.domain.Product">
+		select pro.id,pro.view_id,pro.supplier_id,pro.ticketType,pro.priority_id,pro.customName,
+		pro.name,pro.endPrice,pro.marketPrice,pro.salePrice,pro.isSale,pro.startTime,pro.endTime,pro.dailySale,
+		pro.num,pro.orderTime,pro.isCancel,pro.type,pro.notice,pro.costInside,pro.costOutside,pro.remark,pro.userType,
+		pro.priorityType,pro.method,pro.customId,
+		v.picture picture from product pro
+		left join priority prt on prt.id= pro.priority_id
+		left join viewMessage v on pro.view_id=v.id
+		left join calendar c on c.product_id=pro.id
+		where pro.id=#{id}
+  	</select>
+  	
+  		<!-- 分销商页面搜索框  杨立  2017-11-3 -->
+  	<select id="getKeyWordProduct" resultType="cn.nvinfo.domain.Product">
+		select pro.id,pro.view_id,pro.supplier_id,pro.ticketType,pro.priority_id,pro.customName,
+		pro.name,pro.endPrice,pro.marketPrice,pro.salePrice,pro.isSale,pro.startTime,pro.endTime,pro.dailySale,
+		pro.num,pro.orderTime,pro.isCancel,pro.type,pro.notice,pro.costInside,pro.costOutside,pro.remark,pro.userType,
+		pro.priorityType,pro.method,pro.customId,
+		v.picture picture from product pro
+		left join priority prt on prt.id= pro.priority_id
+		left join viewMessage v on pro.view_id=v.id
+		where pro.name like '%${keyWord}%' or v.city like '%${keyWord}%' or v.name like '%${keyWord}%'
+		order by prt.priority 
+  	</select>
+</mapper>

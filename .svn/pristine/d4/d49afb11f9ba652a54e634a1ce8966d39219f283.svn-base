@@ -1,0 +1,39 @@
+package cn.nvinfo.dao;
+
+import java.util.List;
+
+import cn.nvinfo.tools.OrderList;
+
+
+/**
+ * 订单管理
+ * @author 杨立   2017-09-28
+ *
+ */
+public interface OrderDao {
+	/*
+	 * 获得订单总数	杨立	2017-09-28
+	 */
+	int getAllCount(String orderId, String product, String view,
+			Integer state, String custom, String supplier, Integer power_id, Integer staff_id);
+	/*
+	 * 获得当前页的订单数据	杨立	2017-09-28
+	 */
+	List<OrderList> getPageDate(Integer pageIndex, Integer pageSize,
+			String orderId, String product, String view, Integer state,
+			String custom, String supplier, Integer power_id, Integer staff_id);
+	/*
+	 *  未支付账单查询 state=1
+	 * 已核销订单state=2  获得订单总数	杨立	2017-09-28
+
+	 */
+	int getStateAllCount(String satrtTime, String endTime, Integer state, Integer power_id, Integer staff_id);
+	/*
+	 *  未支付账单查询 state=1
+	 * 已核销订单state=2	获得当前页的订单数据	杨立	2017-09-28
+
+	 */
+	List<OrderList> getStatePageDate(Integer pageIndex, Integer pageSize,
+			String startTime, String endTime, Integer state, Integer power_id, Integer staff_id);
+
+}

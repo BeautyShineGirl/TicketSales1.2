@@ -1,0 +1,174 @@
+package cn.nvinfo.controller;
+
+
+
+import java.util.List;
+
+import javax.annotation.Resource;
+
+import org.apache.log4j.Logger;
+import org.springframework.context.annotation.Scope;
+import org.springframework.stereotype.Controller;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.ResponseBody;
+
+
+
+import cn.nvinfo.domain.CustomType;
+import cn.nvinfo.service.CustomTypeService;
+
+import cn.nvinfo.utils.CheckUtil;
+import cn.nvinfo.utils.Pager;
+import cn.nvinfo.utils.Result;
+/**
+ * 分销商管理以及基础设置中的分销商类别设置
+ * @author 杨立 	2017.09.18
+ *
+ */
+@Controller
+@Scope("prototype")
+@RequestMapping("customType")
+public class CustomTypeAction {
+	private static Logger log=Logger.getLogger(CustomTypeAction.class);
+	@Resource
+	private CustomTypeService customTypeService;
+	private Integer pageSize=10;
+	/**
+	 * 分销商类别设置     显示页面
+	 * @param pageIndex
+	 * @param pageSize
+	 * @return
+	 * @throws InterruptedException 
+	 */
+	@RequestMapping("/findPageData.action")
+	public @ResponseBody Object findPageData(Integer pageIndex) throws InterruptedException{
+		if(!"".equals(CheckUtil.checkArgsNotNull(pageIndex))){
+			log.info(new Result(0,"参数错误"));
+			return new Result(0,"参数错误");
+		}
+		Pager<CustomType> pager=customTypeService.getPager(pageIndex,pageSize);
+		//Thread.sleep(70000);
+		log.info("分页查询条件："+pageIndex);
+		log.info(new Result(1,"查询成功",pager));
+		return new Result(1,"查询成功",pager);
+	}
+
+
+	/**
+	 * 添加
+	 * @param customType
+	 * @return
+	 * @throws InterruptedException 
+	 */
+	@RequestMapping(value="/add.action")
+	public @ResponseBody Object add(String name,Double condPercent,Double condYuan,Integer pageIndex) throws InterruptedException{
+		//验证参数
+		if(!"".equals(CheckUtil.checkArgsNotNull(name,condPercent,condYuan))){
+			log.info(new Result(0,"参数错误"));
+			return new Result(0,"参数错误");
+
+		}
+		if(condPercent>1.0){
+			log.info(new Result(0,"加价率不能大于1.0"));
+			return new Result(0,"加价率不能大于1.0");
+		}
+		//设置参数
+		CustomType customType=new CustomType();
+		customType.setName(name);
+		customType.setCondPercent(condPercent);
+		customType.setCondYuan(condYuan);
+		//添加操作
+		int rows= customTypeService.add(customType);
+		Pager<CustomType> pager=customTypeService.getPager(pageIndex,pageSize);
+		List<CustomType> datas = pager.getDatas();
+		log.info("添加提交的信息："+name+","+condPercent+","+condYuan+","+pageIndex);
+		if(rows>0){
+			log.info(new Result(1,"添加成功",datas));
+			return new Result(1,"添加成功",datas);
+		} else {
+			log.info(new Result(0,"添加失败"));
+			return new Result(0,"添加失败");
+		}
+
+	}
+	/**
+	 * 修改数据回显
+	 * @param id
+	 * @return
+	 */
+	@RequestMapping("/editUI.action")
+	public @ResponseBody Object editUI(Integer id){
+		//验证参数
+		if(!"".equals(CheckUtil.checkArgsNotNull(id))){
+			log.info(new Result(0,"参数错误"));
+			return new Result(0,"参数错误");
+		}
+		//查询
+		CustomType customType = customTypeService.getById(id);
+		log.info(new Result(1,"查询成功",customType));
+		return new Result(1,"查询成功",customType);
+	}
+
+
+	/**
+	 * 修改
+	 * @param id
+	 * @param name
+	 * @param condPercent
+	 * @param condYuan
+	 * @return
+	 */
+	@RequestMapping("/edit.action")
+	public @ResponseBody Object edit(Integer id,String name,Double condPercent,Double condYuan){
+		//验证参数
+		if(!"".equals(CheckUtil.checkArgsNotNull(id,name,condPercent,condYuan))){
+			log.info(new Result(0,"参数错误"));
+			return new Result(0,"参数错误");
+		}
+		if(condPercent>1.0){
+			log.info(new Result(0,"加价率不能大于1.0"));
+			return new Result(0,"加价率不能大于1.0");
+		}
+		//设置参数
+		CustomType customType=new CustomType();
+		customType.setId(id);
+		customType.setName(name);
+		customType.setCondPercent(condPercent);
+		customType.setCondYuan(condYuan);
+		//修改操作
+		int rows= customTypeService.edit(customType);
+		CustomType custom = customTypeService.getById(id);
+		log.info("修改提交的信息："+id+","+name+","+condPercent+","+condYuan);
+		if(rows>0){
+			log.info(new Result(1,"修改成功",custom));
+			return new Result(1,"修改成功",custom);
+		} else {
+			log.info(new Result(0,"修改失败"));
+			return new Result(0,"修改失败");
+		}		
+	}
+
+	/**
+	 * 删除
+	 * @param id
+	 * @return
+	 */
+	@RequestMapping("/delete.action")
+	public @ResponseBody Object delete(Integer id){
+		//验证参数
+		if(!"".equals(CheckUtil.checkArgsNotNull(id))){
+			log.info(new Result(0,"参数错误"));
+			return new Result(0,"参数错误");
+		}
+		//修改操作
+		int rows= customTypeService.delete(id);
+		log.info("删除提交的信息："+id);
+		if(rows>0){
+			log.info(new Result(1,"删除成功"));
+			return new Result(1,"删除成功");
+		} else {
+			log.info(new Result(1,"删除失败"));
+			return new Result(0,"删除失败");
+		}		
+	}
+}

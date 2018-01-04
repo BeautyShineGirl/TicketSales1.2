@@ -1,0 +1,127 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="order">
+  
+  
+  	<!-- 获得总记录数 	杨立	2017-09-28	-->
+  	<select id="getAllCount" resultType="int">
+	select count(*) from orderTable o
+	left join viewMessage v on v.id=o.view_id
+	left join supplier s on s.id=o.supplier_id
+	
+  		<include refid="getSql"></include> 
+  	</select>
+  
+  
+  	<!-- 获得当前页的数据 	杨立	2017-09-28-->
+  	<select id="getPageDate" resultType="cn.nvinfo.tools.OrderList">
+	select o.id id,o.orderId orderId,o.productName productName,v.name view,o.ispay
+	ispay,o.orderState orderState,
+	o.orderNumber orderNumber,o.unitPrice unitPrice,o.price price,o.custName
+	custName,s.name supplier
+	from orderTable o
+	left join viewMessage v on v.id=o.view_id
+	left join supplier s on s.id=o.supplier_id
+  		 <include refid="getSql"></include>  order by id asc limit #{pageIndex},#{pageSize}
+  	</select>
+  	<sql id="getSql">
+  		<where>
+  			<if test=" power_id ==0">
+				1=1
+			</if>
+			<if test=" power_id ==1">
+				 o.view_id in (select id from viewMessage where staff_id =#{staff_id})
+			</if>
+  			
+  		</where>
+  			
+		<if test=" orderId !=null and orderId!=''">
+				and o.orderId like '%${orderId}%'
+		</if>
+		<if test=" product !=null and product!=''">
+				and o.productName like '%${product}%'
+		</if>
+		<if test=" view !=null and view!=''">
+				and v.name like '%${view}%'
+		</if>
+		<if test=" state!=null and state!=''">
+				and o.orderState like '%${state}%'
+		</if>
+		<if test=" custom!=null and custom!=''">
+				and o.custName like '%${custom}%'
+		</if>
+		<if test=" supplier!=null and supplier!=''">
+				and s.name like '%${supplier}%'
+		</if>
+		<if test=" createDate!=null and createDate!=''">
+				and  and o.createDate &gt;='${createDate}'
+		</if>
+		<if test=" createDateEnd!=null and createDateEnd!=''">
+				and  and o.createDate &lt;='${createDateEnd}'
+		</if>
+		<if test=" useDate!=null and useDate!=''">
+				and o.useDate &gt;='${useDate}'
+		</if>
+		<if test=" useDateEnd!=null and useDateEnd!=''">
+				and o.useDate &lt;='${useDateEnd}'
+		</if>
+		<if test=" verDate!=null and verDate!=''">
+				and o.verDate = #{verDate}
+		</if>
+  	</sql>
+  
+  <!-- 未支付账单查询 state=1
+	 * 已核销订单state=2
+	 startTime 出游日期
+	 endTime 下单日期
+	 	杨立	2017-09-28	-->
+  	<select id="getStateAllCount" resultType="int">
+	select count(*) from orderTable o
+	left join viewMessage v on v.id=o.view_id
+	left join supplier s on s.id=o.supplier_id
+  		<include refid="getStateSql"></include> 
+  	</select>
+  
+  
+  	<!-- 未支付账单查询 state=1
+	 * 已核销订单state=2 	
+	startTime 出游日期
+	 endTime 下单日期 
+	 杨立	2017-09-28-->
+  	<select id="getStatePageDate" resultType="cn.nvinfo.tools.OrderList">
+	select o.id id,o.orderId orderId,o.productName productName,v.name view,o.ispay
+	ispay,o.orderState orderState,
+	o.orderNumber orderNumber,o.unitPrice unitPrice,o.price price,o.custName
+	custName,s.name supplier
+	from orderTable o
+	left join viewMessage v on v.id=o.view_id
+	left join supplier s on s.id=o.supplier_id
+  		 <include refid="getStateSql"></include>  order by id asc limit #{pageIndex},#{pageSize}
+  	</select>
+  	<sql id="getStateSql">
+  		<where>
+  			<if test=" power_id ==0">
+				o.orderState=#{state}
+			</if>
+			<if test=" power_id ==1">
+				o.orderState=#{state} and o.view_id in (select id from viewMessage where staff_id =#{staff_id})
+			</if>
+  			
+  		</where>
+		<if test=" createDate!=null and createDate!=''">
+				and  and o.createDate &gt;='${createDate}'
+		</if>
+		<if test=" createDateEnd!=null and createDateEnd!=''">
+				and  and o.createDate &lt;='${createDateEnd}'
+		</if>
+		<if test=" useDate!=null and useDate!=''">
+				and o.useDate &gt;='${useDate}'
+		</if>
+		<if test=" useDateEnd!=null and useDateEnd!=''">
+				and o.useDate &lt;='${useDateEnd}'
+		</if>
+  	</sql>
+  
+</mapper>

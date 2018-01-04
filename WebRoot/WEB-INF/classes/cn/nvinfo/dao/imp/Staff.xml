@@ -1,0 +1,75 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="staff">
+  	<!-- 获得总记录数 -->
+  	<select id="getAllCount" resultType="int">
+  		select count(*) from staff 
+  	</select>
+  	
+  	<!-- 获得当前页的数据 -->
+  	<select id="getPageDate" resultType="cn.nvinfo.tools.StaffList">
+		select id,name,loginName,department,role from staff
+  		 order by id asc limit #{pageIndex},#{pageSize} 
+  	</select>
+  
+  	<!--  从字典中获得部门	杨立   2017-09-29-->
+  	<select id="getdeparment" resultType="cn.nvinfo.domain.Department">
+  		select id id,value name from dictionary where sort=7
+  	</select>
+  	<!--  从字典中获得角色	杨立   2017-09-29-->
+  	<select id="getRole" resultType="java.lang.String">
+  		select value from dictionary where sort=8
+  	</select>
+  	<!-- 获得权限集合	杨立	2017-09-29 -->
+  	<select id="getPower" resultType="cn.nvinfo.domain.Power">
+		select * from power
+  	</select>
+  	
+  	<!-- 添加  杨立   2017-09-29-->
+  	<insert id="save" parameterType="cn.nvinfo.domain.Staff" useGeneratedKeys="true">
+  		insert into staff (power_id,name,loginName,password,department,role) values(#{powerId},#{name},#{loginName},#{password},#{department},#{role})
+  	</insert>
+  	
+  	<!-- 根据id获得用户信息	杨立	2017-09-29 -->
+  	<select id="getById" resultType="cn.nvinfo.domain.Staff">
+	select s.power_id,p.name,s.name,s.loginName,s.department,s.role from staff s
+	 left join power p on p.id=s.power_id where s.id=#{id}
+  	</select>
+  	<!-- 修改 	杨立	2017-09-29-->
+  	<update id="edit" parameterType="cn.nvinfo.domain.Staff" useGeneratedKeys="true">
+  		update staff set power_id=#{powerId},name=#{name},loginName=#{loginName},department=#{department},role=#{role}  where id=#{id} 
+  	</update>
+  	
+  	<!-- 删除 -->
+  	<delete id="delete" parameterType="cn.nvinfo.domain.Staff">
+  		delete from staff where id=#{id}
+  	</delete>
+  	
+  	<!--  检查用户名是否已存在，     yangli 2017-10-09 -->
+  	<select id="checkLoginName" resultType="java.lang.String">
+		select loginName from staff
+  	</select>
+  	<!-- 再删除人员之前，先查询该人员是否有负责的景区，若有，则返回删除失败	yangli	2017-10-12-->
+  	<select id="getView" resultType="int">
+		select count(*) from viewMessage where staff_id=#{id}
+  	</select>
+  	
+  	<!-- 登陆操作		杨立		2017-10-09 -->
+  	<select id="getStaff" resultType="cn.nvinfo.domain.Staff">
+		select s.id,s.power_id powerId,s.name,s.loginName,s.password,s.department,s.role,p.name powerName,p.remark powerRemark from staff s 
+		left join power p on p.id=s.power_id 
+		 where s.loginName=#{loginName} and s.password = #{password}
+  	</select>
+  	<!-- 修改密码	杨立	2017-10-09-->
+  	<update id="editPassword" parameterType="cn.nvinfo.domain.Staff" useGeneratedKeys="true">
+  		update staff set password=#{password}  where id=#{id} 
+  	</update>
+  	<!-- 重置密码 	杨立	2017-10-09-->
+  	<update id="initPassword" parameterType="cn.nvinfo.domain.Staff" useGeneratedKeys="true">
+  		update staff set password=1234  where id=#{id} 
+  	</update>
+  	
+  	
+</mapper>

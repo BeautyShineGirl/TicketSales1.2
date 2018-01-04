@@ -1,0 +1,446 @@
+package cn.nvinfo.controller;
+
+import java.io.File;
+import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.OutputStream;
+
+import java.text.SimpleDateFormat;
+import java.util.ArrayList;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+import javax.annotation.Resource;
+import javax.servlet.http.HttpServletRequest;
+import javax.swing.JOptionPane;
+
+
+import org.apache.log4j.Logger;
+import org.springframework.context.annotation.Scope;
+import org.springframework.stereotype.Controller;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.ResponseBody;
+import org.springframework.web.bind.annotation.SessionAttributes;
+import org.springframework.web.multipart.MultipartFile;
+
+
+import cn.nvinfo.domain.User;
+import cn.nvinfo.domain.ViewMessage;
+import cn.nvinfo.service.ViewService;
+import cn.nvinfo.tools.ViewDictionary;
+import cn.nvinfo.tools.ViewExcel;
+import cn.nvinfo.tools.ViewList;
+import cn.nvinfo.utils.CheckUtil;
+import cn.nvinfo.utils.ExportExcel;
+import cn.nvinfo.utils.Pager;
+import cn.nvinfo.utils.Result;
+
+/**
+ *  �������    
+ * @author ����   2017-09-19
+ *
+ */
+
+@Controller
+@Scope("prototype")
+@SessionAttributes("staff")
+@RequestMapping("view")
+public class ViewAction {
+	Logger log=Logger.getLogger(ViewAction.class);
+	@Resource
+	private ViewService viewService;
+	private Integer pageSize=10;
+    
+	/**
+	 *  ��ҳ��ѯ	����  2017-09-21 
+	 * @param pageIndex
+	 * @param pageSize
+	 * @return
+	 */
+	@RequestMapping("/findPageData.action")
+	public @ResponseBody Object findPageData(Integer pageIndex,Integer viewId,Integer logic,String staffName,
+			String viewName,String level,String viewType,String province,String city,Integer staff_id,Integer power_id){
+		//��֤����
+		if(!"".equals(CheckUtil.checkArgsNotNull(pageIndex,staff_id,power_id))){
+			log.info(new Result(0,"�������"));
+			return new Result(0,"�������");
+		}
+		log.info("��ҳ��ѯ�ύ������"+","+pageIndex+","+viewId+","+logic+","+staffName+","+viewName+","+level+","+viewType+","+province+","+city);
+		Pager<ViewMessage> pager=null;
+		if(power_id==0){
+			log.info("ϵͳ����Ա");
+			//ϵͳ����Ա
+			pager=viewService.getPager(pageIndex,pageSize,viewId,logic,staffName,viewName,level,viewType,province,city);
+		}else{
+			log.info("��ͨ����Ա");
+			//��ͨ����Ա	yangli	2017-10-19
+			pager=viewService.getPager(pageIndex,pageSize,viewId,logic,staffName,viewName,level,viewType,province,city,staff_id);
+		}
+		List<ViewList> list = new ArrayList<ViewList>();  
+		if(pager.getDatas().size()!=0){
+			for (ViewMessage v : pager.getDatas()) {
+				int id = v.getId();
+				//��ѯÿ���������Ӧ�Ĳ�Ʒ����
+				int num=viewService.getViewNum(id);
+				ViewList view =new ViewList();
+				view.setId(v.getId());
+				view.setName(v.getName());
+				view.setLevel(v.getLevel());
+				view.setSort(v.getSort());
+				view.setStaffId(v.getStaffId());
+				view.setBusinessTime(v.getBusinessTime());
+				view.setViewType(v.getType());
+				view.setNumber(num);
+				view.setStaffName(v.getStaffName());
+				list.add(view);
+			}
+			Map<Object,Object> listPage=new HashMap<Object,Object>();
+			listPage.put("allCount",pager.getAllCount());
+			listPage.put("currPage",pager.getCurrPage());
+			listPage.put("pageSize",pager.getPageSize());
+			listPage.put("pageCount",pager.getPageCount());
+			listPage.put("datas",list);
+			log.info(new Result(1,"��ѯ�ɹ�",listPage));
+			return new Result(1,"��ѯ�ɹ�",listPage);
+		}else{
+<<<<<<< .mine
+			log.info(new Result(0,"�������",listPage));
+			return new Result(0,"�������",listPage);
+=======
+			log.info(new Result(0,"��������"));
+			return new Result(0,"��������");
+>>>>>>> .r188
+		}
+
+	}
+	
+	/**
+	 * ������󣬷����ֵ����	����   2017-09-19 
+	 * @return
+	 */
+	@RequestMapping("/addUI.action")
+	public @ResponseBody Object addUI(){
+		//���ֵ���л�þ������
+		List<String> typeList=viewService.getViewType();
+		//���ֵ���л�ľ���ȼ�
+		List<String> levelList=viewService.getViewLevel();
+		//���ֵ��л��ʡ�ݼ���
+		List<String> viewProvince=viewService.getViewProvince();
+		//���ֵ��л�ó��м���
+		List<String> viewCity=viewService.getViewCity();
+		//���ҵ��Ա�ı�ź�����     ����     2017-09-20
+		List<User> staff=viewService.getStaff();
+		ViewDictionary vd=new ViewDictionary();
+		vd.setViewType(typeList);
+		vd.setViewLevel(levelList);
+		vd.setViewProvince(viewProvince);
+		vd.setViewCity(viewCity);
+		vd.setStaff(staff);
+		log.info(new Result(1,"��ѯ�ɹ�",vd));
+		return new Result(1,"��ѯ�ɹ�",vd);
+	}
+	
+	/**
+	 * ��Ӿ�����Ϣ    ����   2017-09-20    ���״̬�������ϴ�����������
+	 * @param view
+	 * @param request
+	 * @param file
+	 * @return
+	 */
+	@RequestMapping(value="/add.action")
+	public @ResponseBody Object add(ViewMessage view ,@RequestParam("file")MultipartFile[] file,HttpServletRequest request/*MultipartFile file,*/){
+		String name= view.getName();
+		String level=view.getLevel();
+		String viewType=view.getType();
+		String address=view.getAddress();
+		String businessTime=view.getBusinessTime();
+		String phone=view.getPhone();
+		String reminder=view.getReminder(); 
+		String discount=view.getDiscount();
+		String busMessage=view.getBusMessage();
+		String selfRoute=view.getSelfRoute();		
+		Integer staffId = view.getStaffId();
+		//���staffId������	����	2017-10-26
+		view.setStaffName(viewService.getByStaffId(staffId));
+		Double lng =view.getLng();
+		Double lat=view.getLat();
+		Integer sort=view.getSort();
+		String province=view.getProvince();
+		String city=view.getCity();
+	/*	//��֤����
+		if(!"".equals(CheckUtil.checkArgsNotNull(name,level,viewType,address,businessTime,
+				phone,discount,staffId,lng,lat,sort,province,city))){
+			log.info(new Result(0,"�������"));
+			return new Result(0,"�������");
+		}
+*/
+		log.info("����ύ������"+","+name+","+level+","+viewType+","+address+","+businessTime+","+phone+","+reminder+","+discount
+				+","+busMessage+","+selfRoute+","+staffId+","+lng+","+lat+","+sort+","+province+","+city);
+		String picture=null;
+		//�ϴ�ͼƬ
+		if(file.length==0){
+			log.info(new Result(0,"��������������Ƭ"));
+			return new Result(0,"��������������Ƭ");
+		}
+		MultipartFile multipartFile = null;
+		for (int i=0;i<file.length; i++) {
+			multipartFile = file[i];
+			String iconName=multipartFile.getOriginalFilename();
+			//�����ļ�  
+			saveFile(multipartFile,request);  
+			//�����ȡ�ļ���·��
+			if(picture==null||picture.equals("")){
+				picture=new SimpleDateFormat("yyyyMMddhhmmss").format(new Date())+iconName;
+			}else{
+				picture=picture+","+new SimpleDateFormat("yyyyMMddhhmmss").format(new Date())+iconName;
+			}
+        }
+		
+        //����ͼƬ����
+        view.setPicture(picture);
+        //��Ӳ���
+        
+        int rows= viewService.add(view);
+        if(rows>0){
+        	log.info(new Result(1,"��ӳɹ�"));
+        	return new Result(1,"��ӳɹ�");
+        } else {
+        	log.info(new Result(0,"���ʧ��"));
+        	return new Result(0,"���ʧ��");
+        } 
+	}
+	/*** 
+	 * �����ļ� 
+	 * @param file 
+	 * @return 
+	 */  
+	public boolean saveFile(MultipartFile file,HttpServletRequest request) {  
+		String iconName=file.getOriginalFilename();
+		// У��ͼƬ��ʽ  
+		// �����ȡ�����ϴ��ļ����ļ����·�����֣�ֻ�����ļ����  
+		String lastName = iconName.substring(iconName.lastIndexOf("\\") + 1);  
+		// �õ��ϴ��ļ�����չ��  
+		String fileExtName = lastName.substring(lastName.lastIndexOf(".") + 1);//doc,docx,pdf
+		// У��ͼƬ��ʽ 	��δ���û�в���
+		if("bmp".equals(fileExtName)||"jpg".equals(fileExtName)||
+				"jpeg".equals(fileExtName)||"gif".equals(fileExtName)||"png".equals(fileExtName)){
+			//��ȡ�ϴ��ļ���·��
+			String src=request.getSession().getServletContext().getRealPath("upload/images/")+File.separator;
+			String path=src+new SimpleDateFormat("yyyyMMddhhmmss").format(new Date())+iconName;
+			File newFile=new File(path);
+			try {
+				file.transferTo(newFile);
+			} catch (Exception e) {
+				e.printStackTrace();
+			} 
+			
+		}
+		return false; 	
+	}
+	/**
+	 * �޸���ݻ���  ����  2017-09-21 
+	 * @param id
+	 * @return
+	 */
+	@RequestMapping("/editUI.action")
+	public @ResponseBody Object editUI(Integer id,HttpServletRequest request){
+		 
+		//��֤���� 
+		if(!"".equals(CheckUtil.checkArgsNotNull(id))){
+			log.info(new Result(0,"�������"));
+			return new Result(0,"�������");
+		}
+		
+		
+		//��ѯ
+		ViewMessage view = viewService.getById(id);
+		String picture = view.getPicture();
+		if(picture==null&&"".equals("")){
+			view.setPic(null);
+		}else{
+			String[] split = picture.split(",");
+			List<String> list=new ArrayList<String>();
+			for (String string : split) {
+				String path="http://test.elvmedia.cn:8080/Ticket"+request.getContextPath()+"/upload/images/"+string;
+				list.add(path);
+			}
+			view.setPic(list);
+			
+		}
+		log.info(new Result(1,"��ѯ�ɹ�",view));
+		return new Result(1,"��ѯ�ɹ�",view);
+	}
+	
+	/**
+	 * �޸�	����	2017-09-21
+	 * @param view
+	 * @param file
+	 * @param request
+	 * @return
+	 */
+	@RequestMapping("/edit.action")
+	public @ResponseBody Object edit(ViewMessage view,@RequestParam("file") MultipartFile[] file,HttpServletRequest request,Integer pageIndex){
+		Integer id=view.getId();
+		String name= view.getName();
+		String level=view.getLevel();
+		String viewType=view.getType();
+		String remark=view.getRemark();
+		String address=view.getAddress();
+		String businessTime=view.getBusinessTime();
+		String phone=view.getPhone();
+		String reminder=view.getReminder();
+		String discount=view.getDiscount();
+		String busMessage=view.getBusMessage();
+		String selfRoute=view.getSelfRoute();		
+		Integer staffId = view.getStaffId();
+		//���staffId������	����	2017-10-26
+		view.setStaffName(viewService.getByStaffId(staffId));
+		Double lng =view.getLng();
+		Double lat=view.getLat();
+		Integer sort=view.getSort();
+		String province=view.getProvince();
+		String city=view.getCity();
+		@SuppressWarnings("unused")
+		boolean isLegal = false; 
+		/*//��֤����
+		if(!"".equals(CheckUtil.checkArgsNotNull(id,name,level,viewType,remark,address,businessTime,
+				phone,discount,staffId,lng,lat,sort,province,city))){
+			return new Result(0,"�������");
+		}*/
+		log.info("�޸��ύ������"+","+id+","+name+","+level+","+viewType+","+remark+","+address+","+businessTime+","+
+				phone+","+reminder+","+discount+","+busMessage+","+selfRoute+","+staffId+","+lng+","+
+				lat+","+sort+","+province+","+city);
+
+		//ɾ��������б�����Ϣ����Ƭ���Ƚ��´�������ͼƬpicture��֮ǰ����ʲô��ͬ����֮ǰpic�����µ�picture��û�е��ڷ������� 
+		//����շ������еĸþ������Ƭ��picture��Ϊ�գ������
+		ViewMessage viewPic = viewService.getById(id);
+		String[] arr = viewPic.getPicture().split(",");
+		for (int i=0;i<arr.length; i++) {
+			String src=request.getSession().getServletContext().getRealPath("upload/files/")+File.separator;
+			String path=src+arr[i];
+			// �ж�Ŀ¼���ļ��Ƿ����  
+			File file1 = new File(path); 
+			// ·��Ϊ�ļ��Ҳ�Ϊ�������ɾ��  
+			if (file1.isFile() && file1.exists()) {  
+				file1.delete();  
+			} 
+		}
+		viewService.delPicture(id);
+		String picture=null;
+		//�ϴ�ͼƬ
+		if(file.length==0){
+			log.info(new Result(0,"��������������Ƭ"));
+			return new Result(0,"��������������Ƭ");
+		}
+		MultipartFile multipartFile = null;
+		for (int i=0;i<file.length; i++) {
+			multipartFile = file[i];
+			//��ȡ�ϴ��ļ���·��
+			String iconName=multipartFile.getOriginalFilename();
+			//�����ļ�  
+			saveFile(multipartFile,request);  
+			//�����ȡ�ļ���·��
+			if(picture==null||picture.equals("")){
+				picture=new SimpleDateFormat("yyyyMMddhhmmss").format(new Date())+iconName;
+			}else{
+				picture=picture+","+new SimpleDateFormat("yyyyMMddhhmmss").format(new Date())+iconName;
+			}
+		}
+		//����ͼƬ����
+		view.setPicture(picture);
+
+		//�޸Ĳ���
+		int rows= viewService.edit(view);
+		if(rows>0){
+			log.info(new Result(1,"�޸ĳɹ�"));
+			return new Result(1,"�޸ĳɹ�");
+		} else {
+			log.info(new Result(0,"�޸�ʧ��"));
+			return new Result(0,"�޸�ʧ��");
+		}		
+	}
+
+	/**
+	 * ɾ��  	����   2017-09-20  
+	 * @param id
+	 * @return
+	 */
+	@RequestMapping("/delete.action")
+	public @ResponseBody Object delete(Integer id){
+		//��֤����
+		if(!"".equals(CheckUtil.checkArgsNotNull(id))){
+			log.info(new Result(0,"�������"));
+			return new Result(0,"�������");
+		}
+		log.info("ɾ���ύ����Ϣ��"+","+id);
+		//��ɾ����֮ǰ���Ȳ�ѯ�þ����Ƿ��в�Ʒ�����У��򷵻�ɾ��ʧ��
+		int viewCount=viewService.getProduct(id);
+		if(viewCount!=0){
+			log.info(new Result(0,"ɾ��ʧ�ܣ��þ�����ڲ�Ʒ"));
+			return new Result(0,"ɾ��ʧ�ܣ��þ�����ڲ�Ʒ");
+		}
+		//�޸Ĳ���
+		int rows= viewService.delete(id);
+		if(rows>0){
+			log.info(new Result(1,"ɾ��ɹ�"));
+			return new Result(1,"ɾ��ɹ�");
+		} else {
+			log.info(new Result(0,"ɾ��ʧ��"));
+			return new Result(0,"ɾ��ʧ��");
+		}		
+	}
+
+	/**
+	 * �������������Ϣ���	����	2017-09-21   δ�ŵ���Ŀ�в�    �ļ������Ḳ��֮ǰ���ļ������Ҳ�������ѡ���̷�͸���
+	 * @param pageIndex
+	 * @return
+	 */
+	@RequestMapping("/outExcel.action")
+	public @ResponseBody Object outExcel(Integer pageIndex,Integer viewId,Integer logic,String staffName,
+			String viewName,String level,String viewType,String province,String city)  
+	{  
+		if(!"".equals(CheckUtil.checkArgsNotNull(pageIndex))){
+			log.info(new Result(0,"�������"));
+			return new Result(0,"�������");
+		}
+		log.info("�����ύ������"+","+pageIndex+","+viewId+","+logic+","+staffName+","+viewName+","+level+","+viewType+","+province+","+city);
+		Pager<ViewMessage> pager=viewService.getPager(pageIndex,pageSize,viewId,logic,staffName,viewName,level,viewType,province,city); 
+		ExportExcel<ViewExcel> ex = new ExportExcel<ViewExcel>();  
+		String[] headers =  
+			{ "������", "�������", "����ȼ�", "�������" ,"�����Ʒ����", "��������", "Ӫҵʱ��","����ҵ����Ա"};  
+
+		List<ViewExcel> dataset = new ArrayList<ViewExcel>();  
+		for (ViewMessage v : pager.getDatas()) {
+			int id = v.getId();
+			//��ѯÿ���������Ӧ�Ĳ�Ʒ����
+			int num=viewService.getViewNum(id);
+			ViewExcel view =new ViewExcel();
+			view.setId(v.getId());
+			view.setName(v.getName());
+			view.setLevel(v.getLevel());
+			view.setViewType(v.getType());
+			view.setSort(v.getSort());
+			view.setNumber(num);
+			view.setBusinessTime(v.getBusinessTime());
+			view.setStaffName(v.getStaffName());
+			dataset.add(view);
+		}
+
+		try{
+			OutputStream out = new FileOutputStream("E://������Ϣ�����.xls");  
+			ex.exportExcel(headers, dataset, out);  
+			out.close();  			
+			JOptionPane.showMessageDialog(null, "�����ɹ�!");  
+		} catch (FileNotFoundException e) {  
+			e.printStackTrace();  
+		} catch (IOException e) {  
+			e.printStackTrace();  
+		} 
+		log.info(new Result(1,"�����ɹ�"));
+		return new Result(1,"�����ɹ�");
+	}  	
+}

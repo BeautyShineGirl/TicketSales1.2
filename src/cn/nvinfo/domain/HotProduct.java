@@ -1,0 +1,170 @@
+package cn.nvinfo.domain;
+
+import java.util.List;
+
+/**
+ * 抢购产品实体
+ * 本实体用于参加热销抢购系统
+ * @author yangli	2017-12-25
+ *
+ */
+public class HotProduct {
+
+	private int id;//产品编号
+	private String random_no;//根据随机数，改变url，上传图片用
+	private String name;//产品名
+	private String viewName;
+	private int state;//开关    备用字段
+	private String salePrice;//销售价	
+	private String saleTime;//产品销售持续的时间
+	private String startTime;//开始时间 	
+	private String endTime;//结束时间
+	private int saledNum;//已抢购的数量
+	private int num;//总数量
+	private String notice;//入园须知
+	private String costInside;//费用包含
+	private String costOutside;//费用不包含
+	private String remark;//备注
+	private String introduce;//产品介绍
+	private String method;//入园方式
+	private String url;//分销商字符串
+	private String marketPrice;//原价
+	private List<Images> images;//购买页面返回产品所对应的图片
+	
+	private String start;
+	private String end;
+	public int getId() {
+		return id;
+	}
+	public void setId(int id) {
+		this.id = id;
+	}
+	
+	public String getRandom_no() {
+		return random_no;
+	}
+	public void setRandom_no(String random_no) {
+		this.random_no = random_no;
+	}
+	public String getName() {
+		return name;
+	}
+	public void setName(String name) {
+		this.name = name;
+	}
+	public String getViewName() {
+		return viewName;
+	}
+	public void setViewName(String viewName) {
+		this.viewName = viewName;
+	}
+	public int getState() {
+		return state;
+	}
+	public void setState(int state) {
+		this.state = state;
+	}
+	public String getSalePrice() {
+		return salePrice;
+	}
+	public void setSalePrice(String salePrice) {
+		this.salePrice = salePrice;
+	}
+	public String getSaleTime() {
+		return saleTime;
+	}
+	public void setSaleTime(String saleTime) {
+		this.saleTime = saleTime;
+	}
+	public String getStartTime() {
+		return startTime;
+	}
+	public void setStartTime(String startTime) {
+		this.startTime = startTime;
+	}
+	public String getEndTime() {
+		return endTime;
+	}
+	public void setEndTime(String endTime) {
+		this.endTime = endTime;
+	}
+	public int getSaledNum() {
+		return saledNum;
+	}
+	public void setSaledNum(int saledNum) {
+		this.saledNum = saledNum;
+	}
+	public int getNum() {
+		return num;
+	}
+	public void setNum(int num) {
+		this.num = num;
+	}
+	public String getNotice() {
+		return notice;
+	}
+	public void setNotice(String notice) {
+		this.notice = notice;
+	}
+	public String getCostInside() {
+		return costInside;
+	}
+	public void setCostInside(String costInside) {
+		this.costInside = costInside;
+	}
+	public String getCostOutside() {
+		return costOutside;
+	}
+	public void setCostOutside(String costOutside) {
+		this.costOutside = costOutside;
+	}
+	public String getRemark() {
+		return remark;
+	}
+	public void setRemark(String remark) {
+		this.remark = remark;
+	}
+	public String getIntroduce() {
+		return introduce;
+	}
+	public void setIntroduce(String introduce) {
+		this.introduce = introduce;
+	}
+	public String getMethod() {
+		return method;
+	}
+	public void setMethod(String method) {
+		this.method = method;
+	}
+	public String getUrl() {
+		return url;
+	}
+	public void setUrl(String url) {
+		this.url = url;
+	}
+	public List<Images> getImages() {
+		return images;
+	}
+	public void setImages(List<Images> images) {
+		this.images = images;
+	}
+	public String getMarketPrice() {
+		return marketPrice;
+	}
+	public void setMarketPrice(String marketPrice) {
+		this.marketPrice = marketPrice;
+	}
+	public String getStart() {
+		return start;
+	}
+	public void setStart(String start) {
+		this.start = start;
+	}
+	public String getEnd() {
+		return end;
+	}
+	public void setEnd(String end) {
+		this.end = end;
+	}
+	
+}

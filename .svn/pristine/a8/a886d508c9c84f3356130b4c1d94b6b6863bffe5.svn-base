@@ -1,0 +1,151 @@
+package cn.nvinfo.utils;
+
+import java.text.SimpleDateFormat;
+import java.util.ArrayList;
+import java.util.Calendar;
+import java.util.Date;
+import java.util.List;
+
+/*
+ * 测试分销商管理 的删除    URL	2017-09-28
+ */
+public class Test {
+	/*public static void test(String fileName,String url){
+		String[] arr=url.split(",");
+		String newUrl=null;
+		for (int i = 0; i < arr.length; i++) {
+			if(!arr[i].equals("upload/files/"+fileName)){
+				if(newUrl==null){
+					newUrl=arr[i];
+				}else{
+					newUrl=newUrl+",\n\t"+arr[i];
+				}
+			}
+		}
+		System.out.println(newUrl);
+	}
+
+			public static void test1(String url){
+				// c:\a\b\1.txt，而有些只是单纯的文件名，如：1.txt  
+				// 处理获取到的上传文件的文件名的路径部分，只保留文件名部分  
+				String lastName = url.substring(url.lastIndexOf("\\") + 1);  
+				// 得到上传文件的扩展名  
+				String fileExtName = lastName.substring(lastName.lastIndexOf(".") + 1); 
+				System.out.println(fileExtName);
+			}
+	public static void main(String[] args) {
+		//String fileName="20170928111022分发平台.pptx";
+		String url="upload/files/20170928111022分发平台.pptx";
+		//test(fileName,url);
+		test1(url);
+	}*/
+
+	/*public static void main(String[] args) {
+
+		List<Date> list = getAllTheDateOftheMonth(new Date());
+
+		for(Date date: list){
+			System.out.println(date.toString());
+		}
+
+	}
+
+	private static List<Date> getAllTheDateOftheMonth(Date date) {
+		List<Date> list = new ArrayList<Date>();
+		Calendar cal = Calendar.getInstance();
+		cal.setTime(date);
+		cal.set(Calendar.DATE, 1);
+
+		int month = cal.get(Calendar.MONTH);
+		while(cal.get(Calendar.MONTH) == month){
+			list.add(cal.getTime());
+			cal.add(Calendar.DATE, 1);
+		}
+		return list;
+	}*/
+	/*public static Date[] getDates(String year, String month) {
+		int maxDate = 0;
+		Date first = null;
+		try {
+			Calendar cal = Calendar.getInstance();
+			SimpleDateFormat sdf = new SimpleDateFormat("yyyyMM");
+			first = sdf.parse(year + month);
+			cal.setTime(first);
+			maxDate = cal.getMaximum(Calendar.DAY_OF_MONTH);
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+		Date[] dates = new Date[maxDate];
+		for (int i = 1; i <= maxDate; i++) {
+			dates[i - 1] = new Date(first.getTime());
+			first.setDate(first.getDate() + 1);
+		}
+		return dates;
+	}
+
+	public static void main(String[] args) {
+		Date[] dates = getDates("2017", "11");
+		for (int i = 0; i < dates.length; i++) {
+			System.out.println(dates[i]);
+		}
+	}*/
+
+	@SuppressWarnings("deprecation")
+	public static void main(String[] args) {
+		//  String[] weekDays = {"星期日", "星期一", "星期二", "星期三", "星期四", "星期五", "星期六"};
+		Calendar calendar=Calendar.getInstance();
+		calendar.set(calendar.get(Calendar.YEAR), calendar.get(Calendar.MONTH) + 1, calendar.get(Calendar.DATE));
+		long next =calendar.getTimeInMillis();
+		calendar.add(Calendar.MONTH,-1);  // 这里想要得到当月的月份，这里写0不行？
+		List<String> list =new ArrayList<String>();
+		while(calendar.getTimeInMillis()!=next)
+		{
+			//System.out.println(calendar.getTime().toLocaleString());
+			String localeString = calendar.getTime().toLocaleString();
+			
+			String substring = localeString.substring(0, 10);
+			list.add(substring);
+			//System.out.println(localeString.substring(0, 9));
+			/*int w = calendar.get(Calendar.DAY_OF_WEEK)-1;
+			if (w<0) {
+				w=0;
+			}
+			 System.out.println(weekDays);*/
+			int i=1;
+			calendar.add(Calendar.DAY_OF_MONTH, i++);
+		}
+		String datePrice=null;
+		for (String date : list) {
+			if(datePrice==null||datePrice.equals("")){
+				datePrice=date+"&"+"70";
+			}else{
+				datePrice=datePrice+"|"+date+"&"+"70";
+			}
+		}
+		System.out.println(datePrice);
+	}
+
+	/**
+	 * java 获取当前年份 月份 日期
+	 * @param args
+	 */
+	/* public static void main(String[] args) {
+		    Calendar cal = Calendar.getInstance();
+		    int day = cal.get(Calendar.DATE);
+		    int month = cal.get(Calendar.MONTH) + 1;
+		    int year = cal.get(Calendar.YEAR);
+		    int dow = cal.get(Calendar.DAY_OF_WEEK);
+		    int dom = cal.get(Calendar.DAY_OF_MONTH);
+		    int doy = cal.get(Calendar.DAY_OF_YEAR);
+
+		    //System.out.println("Current Date: " + cal.getTime());
+		    System.out.println("Day: " + day);
+		    System.out.println("Month: " + month);
+		    System.out.println("Year: " + year);
+		   // System.out.println("Day of Week: " + dow);
+		   // System.out.println("Day of Month: " + dom);
+		    //System.out.println("Day of Year: " + doy);
+		  }*/
+
+
+}

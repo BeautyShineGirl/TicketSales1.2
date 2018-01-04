@@ -1,0 +1,14 @@
+#\u5B9A\u4E49LOG\u8F93\u51FA\u7EA7\u522B
+log4j.rootLogger=INFO,Console,File
+#\u6BCF\u5929\u4EA7\u751F\u4E00\u4E2A\u65B0\u7684\u65E5\u5FD7\u6587\u4EF6
+log4j.appender.File=org.apache.log4j.DailyRollingFileAppender
+#\u6307\u5B9A\u8F93\u51FA\u76EE\u5F55
+log4j.appender.File.File=${webapp.root}/WEB-INF/logs/log_
+#log4j.appender.File.File=E:/ticketSalesLogs/log_
+log4j.appender.file.DatePattern=yyyy-MM-dd'.log'
+#\u8F93\u51FA\u6240\u6709\u65E5\u5FD7\uFF0C\u5982\u679C\u6362\u6210DEBUG\u8868\u793A\u8F93\u51FADEBUG\u4EE5\u4E0A\u7EA7\u522B\u65E5\u5FD7
+#log4j.logger.cn.nvinfo.controller=DEBUG
+log4j.appender.File.Threshold=ALL
+log4j.appender.File.layout=org.apache.log4j.PatternLayout
+log4j.appender.File.layout.ConversionPattern=[%p]\u65F6\u95F4\uFF1A%d{yyyy-MM-dd HH\:mm\:ss}---[%c]%n\t\t\t\t--%m%n%n
+

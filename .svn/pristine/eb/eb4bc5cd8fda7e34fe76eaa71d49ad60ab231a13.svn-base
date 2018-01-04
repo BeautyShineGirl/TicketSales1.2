@@ -1,0 +1,4 @@
+mch_id=1326595001
+key=39152763cc5616ba2d8605751ef8c61f
+req_url=https\://api.mch.weixin.qq.com/pay/unifiedorder
+notify_url=http\://test.elvmedia.cn\:8080/Ticekt/cn.nvinfo.wxpay.servlet/payResult

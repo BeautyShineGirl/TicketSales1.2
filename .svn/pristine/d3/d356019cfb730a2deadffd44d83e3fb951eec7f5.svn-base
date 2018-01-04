@@ -1,0 +1,152 @@
+package cn.nvinfo.service.imp;
+
+
+
+import java.util.List;
+
+import javax.annotation.Resource;
+import javax.swing.text.View;
+
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import cn.nvinfo.dao.UserDao;
+import cn.nvinfo.domain.Custom;
+import cn.nvinfo.domain.Order;
+import cn.nvinfo.domain.Product;
+import cn.nvinfo.domain.ViewMessage;
+import cn.nvinfo.service.UserService;
+
+
+@Service("userService")
+@Transactional
+public class UserServiceImp implements UserService {
+
+	@Resource
+	private UserDao userDao;
+
+
+	/*
+	 * 登陆  杨立  2017-10-16(non-Javadoc)
+	 * @see cn.nvinfo.service.UserService#getUser(java.lang.String, java.lang.String)
+	 */
+	public Custom getUser(String loginName, String password) {
+		return userDao.getUser(loginName,password);
+	}
+
+	/*
+	 * 添加订单到数据库	YANGLI 2017-10-18(non-Javadoc)
+	 * @see cn.nvinfo.service.UserService#addOrder(cn.nvinfo.domain.Order)
+	 */
+	public int addOrder(Order order) {
+		return userDao.addOrder(order);
+	}
+	/*
+	 * 修改订单状态为为0，支付成功，添加微信订单号到order表	杨立	2017-10-26(non-Javadoc)
+	 * @see cn.nvinfo.service.UserService#updateOrder(cn.nvinfo.domain.Order)
+	 */
+	public int updateOrder(Order order) {
+		return userDao.updateOrder(order);
+	}
+
+	/*
+	 * 在本地数据库中查询，若查询状态不是orderState为3，则发起向微信退款查询（refundQueryServlet）(non-Javadoc)
+	 * @see cn.nvinfo.service.UserService#queryRefund(java.lang.Integer)
+	 */
+	public int queryRefund(Integer id) {
+		return userDao.queryRefund(id);
+	}
+	/*
+	 * 向微信发出查询退款申请返回退款成功，(non-Javadoc)
+	 * @see cn.nvinfo.service.UserService#updateOrderState(java.lang.Integer)
+	 */
+	public void updateOrderState(String id) {
+		userDao.updateOrderState(id);
+	}
+	/*
+	 * 查询提交的订单 是否已支付，如未支付orderState=1，则向微信发出支付请求	杨立	2017-10-26(non-Javadoc)
+	 * @see cn.nvinfo.service.UserService#selectOrderState(java.lang.Integer)
+	 */
+	public int selectOrderState(Integer id) {
+		return userDao.selectOrderState(id);
+	}
+	/*
+	 * 修改状态为0 支付成功(non-Javadoc)
+	 * @see cn.nvinfo.service.UserService#editState(java.lang.Integer)
+	 */
+	public void editState(String id) {
+		userDao.editState(id);
+
+	}
+	/*
+	 * 轮播图	返回优先级0到4的产品及每个产品所对应的景区照片所对应的集合(non-Javadoc)
+	 * @see cn.nvinfo.service.UserService#getProduct()
+	 */
+	public List<Product> getProduct() {
+		
+		return userDao.getProduct();
+	}
+
+	/*
+	 * 优先级最高的产品	优先级为5	杨立	2017-11-1(non-Javadoc)
+	 * @see cn.nvinfo.service.UserService#getExpeciallyProduct()
+	 */
+	public List<Product> getExpeciallyProduct() {
+		return userDao.getExpeciallyProduct();
+	}
+
+	/*
+	 *景点游	优先级为6的景区 按优先级排列   从打到小的顺序	杨立	2017-11-1(non-Javadoc)
+	 * @see cn.nvinfo.service.UserService#getMoreProduct()
+	 */
+	public List<Product> getViewTravalPro() {
+		return userDao.getViewTravalPro();
+	}
+
+	/*
+	 * 周边游	优先级为7的景区  且不是西安的景区的产品	杨立	2017-11-1(non-Javadoc)
+	 * @see cn.nvinfo.service.UserService#getRimTravalPro()
+	 */
+	public List<Product> getRimTravalPro() {
+		return userDao.getRimTravalPro();
+	}
+
+	/*
+	 * 国内游	优先级为8的景区  	杨立	2017-11-1(non-Javadoc)
+	 * @see cn.nvinfo.service.UserService#getNationalTravalPro()
+	 */
+	public List<Product> getNationalTravalPro() {
+		return userDao.getNationalTravalPro();
+	}
+
+	/*
+	 * 点击更多时出现所有产品	按优先级顺序排列  	杨立	2017-11-1(non-Javadoc)
+	 * @see cn.nvinfo.service.UserService#getMore()
+	 */
+	public List<Product> getMore() {
+		return userDao.getMore();
+	}
+	/*
+	 * 根据id返回产品详情  杨立  2017-09-25(non-Javadoc)
+	 * @see cn.nvinfo.service.UserService#getById(java.lang.Integer)
+	 */
+	public Product getById(Integer id) {
+		return userDao.getById(id);
+	}
+	/*
+	 * 分销商页面搜索框  杨立  2017-11-3(non-Javadoc)
+	 * @see cn.nvinfo.service.UserService#getKeyWordProduct(java.lang.String)
+	 */
+	public List<Product> getKeyWordProduct(String keyWord) {
+		return userDao.getKeyWordProduct(keyWord);
+	}
+
+	/*
+	 * sort为0的景区	杨立	2017-11-1(non-Javadoc)
+	 * @see cn.nvinfo.service.UserService#getScopeView()
+	public ViewMessage getScopeView() {
+		return userDao.getScopeView();
+	}
+	 */
+
+}

@@ -1,0 +1,97 @@
+package cn.nvinfo.domain;
+/**
+ * 
+ * 供应商实体
+ * @author 杨立   2017-09-18
+ *
+ */
+public class Supplier {
+
+	private int id;//编号
+	
+	private String name;//供应商名称
+	
+	private String linkMan;//供应商联系人
+	
+	private String phone;//供应商电话
+	
+	private String remark;//供应商简介
+	
+	private String url;//供应商api目录
+	
+	private double creditValue;//供应商信用值
+	
+	private String level;//供应商等级  数据字典   一级  二级  等
+
+	public Supplier() {
+		super();
+	}
+
+	public int getId() {
+		return id;
+	}
+
+	public void setId(int id) {
+		this.id = id;
+	}
+
+	public String getName() {
+		return name;
+	}
+
+	public void setName(String name) {
+		this.name = name;
+	}
+
+	public String getLinkMan() {
+		return linkMan;
+	}
+
+	public void setLinkMan(String linkMan) {
+		this.linkMan = linkMan;
+	}
+
+	public String getPhone() {
+		return phone;
+	}
+
+	public void setPhone(String phone) {
+		this.phone = phone;
+	}
+
+	public String getRemark() {
+		return remark;
+	}
+
+	public void setRemark(String remark) {
+		this.remark = remark;
+	}
+
+	public String getUrl() {
+		return url;
+	}
+
+	public void setUrl(String url) {
+		this.url = url;
+	}
+
+	public double getCreditValue() {
+		return creditValue;
+	}
+
+	public void setCreditValue(double creditValue) {
+		this.creditValue = creditValue;
+	}
+
+	public String getLevel() {
+		return level;
+	}
+
+	public void setLevel(String level) {
+		this.level = level;
+	}
+	
+	
+	
+	
+}

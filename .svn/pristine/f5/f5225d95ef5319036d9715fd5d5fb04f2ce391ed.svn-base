@@ -1,0 +1,139 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="view">
+  	<!-- 查询每个景区所对应的产品数量 	杨立	2017-09-21	-->
+  	<select id="getViewNum" resultType="int">
+  		select count(view_id) from product where view_id=#{id}
+  	</select>
+  	
+  	<!-- 查询每个景区的业务员的属性名 	杨立	2017-09-21	-->
+  	
+  	<select id="getStaffName" resultType="cn.nvinfo.domain.User">
+  	select s.id,s.name from staff s left join viewMessage v on s.id=v.staff_id where v.id=#{id}
+  	</select>
+  	
+  	
+  	<!-- 获得总记录数 	杨立	2017-09-22	-->
+  	<select id="getAllCount" resultType="int">
+  		select count(*) from viewMessage <include refid="getSql"></include>
+  	</select>
+  
+  
+  	<!-- 获得当前页的数据 	杨立	2017-09-22-->
+  	<select id="getPageDate" resultType="cn.nvinfo.domain.ViewMessage">
+  		select  v.id id,v.name name,v.level level,v.type type,v.sort sort,v.businessTime businessTime,s.name staffName,v.staff_id staffId from viewMessage v  
+		left join staff s on s.id=v.staff_id
+  		<include refid="getSql"></include>  order by id asc limit #{pageIndex},#{pageSize}
+  	</select>
+  	<sql id="getSql">
+  		<where>
+  			1=1
+  		</where>
+		<if test=" viewId !=null and viewId!=''">
+			<choose>
+				<!-- 大于 -->
+				<when test="logic==0">
+						and id &gt;${viewId}
+				</when>
+				<!-- 小于-->
+				<when test="logic==1">
+						and id &lt;${viewId}
+				</when>
+				<!-- 等于 -->
+				<when test="logic==2">
+						and id =${viewId}
+				</when>
+				<!-- 大于 等于-->
+				<when test="logic==3">
+						and id &gt;=${viewId}
+				</when>
+				<!-- 小于等于 -->
+				<when test="logic==4">
+						and id &lt;= ${viewId}
+				</when>
+				<!-- 不等于 -->
+				<when test="logic==5">
+						and id !=${viewId}
+				</when>
+				<otherwise>
+						and id like '%${viewId}%'
+				</otherwise>
+			</choose>
+		</if>
+		<if test=" staffName !=null and staffName!=''">
+				and staffName like '%${staffName}%'
+		</if>
+		<if test=" viewName !=null and viewName!=''">
+				and name like '%${viewName}%'
+		</if>
+		<if test=" level !=null and level!=''">
+				and level like '%${level}%'
+		</if>
+		<if test=" viewType!=null and viewType!=''">
+				and type like '%${viewType}%'
+		</if>
+		<if test=" province !=null and province!=''">
+				and province like '%${province}%'
+		</if>
+		<if test=" city !=null and city!=''">
+				and city like '%${city}%'
+		</if>
+  	</sql>
+  	<!-- 从字典表中获得景区分类  	 杨立   2017-09-19-->
+  	<select id="getViewType" resultType="java.lang.String">
+  		select value from dictionary where sort=9
+  	</select>
+  	
+  	<!-- 从字典表中获得景区等级 	 杨立   2017-09-19-->
+  	<select id="getViewLevel" resultType="java.lang.String">
+  		select value from dictionary where sort=10
+  	</select>
+  	
+  	<!-- 从字典中获得省份集合 	 杨立   2017-09-19-->
+  	<select id="getViewProvince" resultType="java.lang.String">
+  		select value from dictionary where sort=5
+  	</select>
+  	
+  	<!-- 从字典中获得城市集合	 杨立   2017-09-19 -->
+  	<select id="getViewCity" resultType="java.lang.String">
+  		select value from dictionary where sort=6
+  	</select>
+  	
+  	<!-- 从字典中获得城市集合 	 杨立   2017-09-20-->
+  	<select id="getStaff" resultType="cn.nvinfo.domain.User">
+  		select id,name from staff 
+  	</select>
+  	
+  	<!-- 添加  杨立   2017-09-20-->
+  	<insert id="add" parameterType="cn.nvinfo.domain.ViewMessage" useGeneratedKeys="true">
+  		insert into viewMessage (staff_id,name,level,type,remark, address,businessTime,phone,reminder,discount,
+  		busMessage,selfRoute,picture,lng,lat,province,city,sort,staffName) values(#{staffId},#{name},#{level},#{type},#{remark},
+  		#{address},#{businessTime},#{phone},#{reminder},#{discount},#{busMessage},#{selfRoute},#{picture},#{lng},#{lat},
+  		#{province},#{city},#{sort},#{staffName})
+  	</insert>
+ 
+  	<!-- 修改 	杨立	2017-09-21-->
+  	<update id="edit" parameterType="cn.nvinfo.domain.ViewMessage" useGeneratedKeys="true">
+  		update viewMessage set staff_id=#{staffId},name=#{name},level=#{level},type=#{type},remark=#{remark},
+  		address=#{address},businessTime=#{businessTime},phone=#{phone},reminder=#{reminder},discount=#{discount},
+  		busMessage=#{busMessage},selfRoute=#{selfRoute},picture=#{picture},lng=#{lng},lat=#{lat},province=#{province},
+  		city=#{city},sort=#{sort},staffName=#{staffName} where id=#{id} 
+  	</update>
+  	
+  	<!-- 修改的数据回显   	杨立	2017-09-21 -->
+  	<select id="getById" resultType="cn.nvinfo.domain.ViewMessage">
+  		select * from viewMessage where id=#{id}
+  	</select>
+  	
+  	<!-- 删除   杨立   2017-09-20	-->
+  	<delete id="delete" parameterType="cn.nvinfo.domain.ViewMessage">
+  		delete from viewMessage where id=#{id}
+  	</delete>
+  	
+  	<!--  再删除景区之前，先查询该景区是否有产品，若有，则返回删除失败	yangli 	2017-10-16-->
+  	<select id="getProduct" resultType="int">
+		select count(*) from product where view_id=#{id}
+  	</select>
+</mapper>

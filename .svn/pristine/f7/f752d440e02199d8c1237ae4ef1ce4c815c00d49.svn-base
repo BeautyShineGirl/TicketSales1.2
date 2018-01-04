@@ -1,0 +1,16 @@
+package cn.nvinfo.service;
+
+import cn.nvinfo.domain.User;
+import cn.nvinfo.utils.Pager;
+
+public interface UserService {
+
+	void saveTwoUser();
+
+	Pager<User> getPager(Integer pageIndex, Integer pageSize);
+
+	int edit(Integer id, String deptId, String name);
+
+	
+
+}

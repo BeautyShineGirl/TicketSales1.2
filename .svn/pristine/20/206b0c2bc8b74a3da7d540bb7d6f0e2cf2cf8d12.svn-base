@@ -1,0 +1,75 @@
+package cn.nvinfo.alipay.servlet;
+
+
+import java.io.IOException;
+
+import javax.servlet.ServletException;
+import javax.servlet.http.HttpServlet;
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
+
+import org.springframework.web.context.WebApplicationContext;
+import org.springframework.web.context.support.WebApplicationContextUtils;
+
+
+import com.alipay.api.response.AlipayTradePrecreateResponse;
+
+import cn.nvinfo.domain.Order;
+import cn.nvinfo.service.UserService;
+import cn.nvinfo.utils.SMS;
+import cn.nvinfo.utils.StringUtil;
+/**
+ * 支付结果通知
+ * @author 杨立	2017-10-30
+ *
+ */
+public class AlipayPayResult extends HttpServlet {
+
+	private static final long serialVersionUID = 1L;
+
+	@Override
+	protected void doGet(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
+		doPost(req, resp);
+	}
+
+	@Override
+	protected void doPost(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
+		req.setCharacterEncoding("utf-8");
+		resp.setCharacterEncoding("utf-8");
+		//获取spring容器中的service
+		WebApplicationContext  ctx= WebApplicationContextUtils.getWebApplicationContext(this.getServletContext());
+		UserService userService = (UserService) ctx.getBean("userService",UserService.class);
+		AlipayTradePrecreateResponse response=new AlipayTradePrecreateResponse();
+		if(response != null && response.isSuccess()){
+			Order order = new Order();
+			order.setOrderState(0);//将订单表中的orderState改为0，证明，订单已支付成功
+			order.setTransaction_id("无");//保存微信订单号
+			order.setOrderId(response.getOutTradeNo());//商品订单号order表中的id
+			//先从订单表中把该支付成功的订单查出来	2017-11-07
+			Order order2=userService.getOrderSuccess(response.getOutTradeNo());
+			//然后将短信通知所需的字段放入短信通知的方法中发送短信2017-11-07
+			String ticketCode=StringUtil.getRandomString(12);
+			SMS.sendSms(order2.getUserName(), order2.getUseDate(), order2.getProductName(),
+					order2.getOrderNumber()+"", response.getOutTradeNo(), ticketCode, 
+					order2.getViewName(), order2.getUserPhone());
+			//保存入园凭证码
+			order.setOrderCode(ticketCode);
+			userService.updateOrder(order);//
+			resp.getWriter().println("success");
+		}else{
+			//网关错误
+			if(!response.getCode().equals("10000")){
+				resp.getWriter().write("{\"msg\":\"系统错误\",\"result\":[{}],\"code\":\"\"}");
+			}else{
+				resp.getWriter().println("fail");
+			}
+			//把订单状态改成4 为无效订单
+			Order order = new Order();
+			order.setOrderState(4);//将订单表中的orderState改为0，证明，订单已支付成功
+			order.setTransaction_id("无");//保存微信订单号
+			order.setOrderId(response.getOutTradeNo());//商品订单号order表中的id
+			userService.updateOrder(order);//
+		}
+
+	}
+}

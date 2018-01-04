@@ -1,0 +1,87 @@
+package cn.nvinfo.alipay.servlet;
+
+import java.io.IOException;
+
+import javax.servlet.ServletException;
+import javax.servlet.http.HttpServlet;
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
+
+import cn.nvinfo.utils.AlipayConfig;
+
+import com.alipay.api.AlipayApiException;
+import com.alipay.api.AlipayClient;
+import com.alipay.api.DefaultAlipayClient;
+import com.alipay.api.domain.AlipayTradePrecreateModel;
+import com.alipay.api.request.AlipayTradePrecreateRequest;
+import com.alipay.api.response.AlipayTradePrecreateResponse;
+
+
+/**
+ * 关闭订单
+ * @author 杨立
+ *
+ */
+public class CloseAlipayOrder extends HttpServlet {
+	private static final long serialVersionUID = 1L;
+	@Override
+	protected void doGet(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
+		doPost(req, resp);
+	}
+
+	@Override
+	protected void doPost(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
+		req.setCharacterEncoding("utf-8");
+		resp.setCharacterEncoding("utf-8");
+
+		String out_trade_no = (String) req.getAttribute("out_trade_no");//商户订单号
+		//公共参数
+		AlipayClient alipayClient = new DefaultAlipayClient("	https://openapi.alipay.com/gateway.do",
+				AlipayConfig.app_id,AlipayConfig.private_key,"json","UTF-8",AlipayConfig.alipay_public_key,"RSA2");
+		AlipayTradePrecreateRequest request = new AlipayTradePrecreateRequest();
+		AlipayTradePrecreateModel model=new AlipayTradePrecreateModel();
+		request.setBizModel(model);
+		model.setOutTradeNo(out_trade_no);//订单号
+		AlipayTradePrecreateResponse response;
+		try {
+			response = alipayClient.execute(request);
+			if(response.isSuccess()){
+				/*
+				 * 调用成功
+				 */
+				resp.getWriter().write("{\"msg\":\"订单已关闭\",\"result\":[{}],\"code\":\"\"}");
+			} else {
+				/*
+				 * 调用失败
+				 */
+				//网关错误
+				if(!response.getCode().equals("10000")){
+					resp.getWriter().write("{\"msg\":\"系统错误\",\"result\":[{}],\"code\":\"\"}");
+				}
+				// 	系统错误
+				if("ACQ.SYSTEM_ERROR".equals(response.getSubMsg())){
+					for (int i = 0; i < 1; i++) {
+						doPost(req,resp);
+						resp.getWriter().write("{\"msg\":\"系统错误\",\"result\":[{}],\"code\":\"\"}");
+					}
+				}
+				//交易不存在
+				if("ACQ.TRADE_NOT_EXIST".equals(response.getSubMsg())){
+					resp.getWriter().write("{\"msg\":\"交易不存在\",\"result\":[{}],\"code\":\"\"}");
+				}
+				//交易状态不合法		检查当前交易的状态是不是等待买家付付款，只有等待买家付款状态下才能发起交易关闭。
+				if("ACQ.TRADE_STATUS_ERROR".equals(response.getSubMsg())){
+					resp.getWriter().write("{\"msg\":\"交易状态不合法\",\"result\":[{}],\"code\":\"\"}");
+				}
+				// 	参数无效
+				if("ACQ.INVALID_PARAMETER".equals(response.getSubMsg())){
+					resp.getWriter().write("{\"msg\":\"检查请求参数，修改后重新发起请求 \",\"result\":[{}],\"code\":\"\"}");
+				}
+
+			}
+		} catch (AlipayApiException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+	}
+}

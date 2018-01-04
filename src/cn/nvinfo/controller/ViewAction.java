@@ -1,0 +1,446 @@
+package cn.nvinfo.controller;
+
+import java.io.File;
+import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.OutputStream;
+
+import java.text.SimpleDateFormat;
+import java.util.ArrayList;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+import javax.annotation.Resource;
+import javax.servlet.http.HttpServletRequest;
+import javax.swing.JOptionPane;
+
+
+import org.apache.log4j.Logger;
+import org.springframework.context.annotation.Scope;
+import org.springframework.stereotype.Controller;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.ResponseBody;
+import org.springframework.web.bind.annotation.SessionAttributes;
+import org.springframework.web.multipart.MultipartFile;
+
+
+import cn.nvinfo.domain.User;
+import cn.nvinfo.domain.ViewMessage;
+import cn.nvinfo.service.ViewService;
+import cn.nvinfo.tools.ViewDictionary;
+import cn.nvinfo.tools.ViewExcel;
+import cn.nvinfo.tools.ViewList;
+import cn.nvinfo.utils.CheckUtil;
+import cn.nvinfo.utils.ExportExcel;
+import cn.nvinfo.utils.Pager;
+import cn.nvinfo.utils.Result;
+
+/**
+ *  景区管理    
+ * @author 杨立   2017-09-19
+ *
+ */
+
+@Controller
+@Scope("prototype")
+@SessionAttributes("staff")
+@RequestMapping("view")
+public class ViewAction {
+	Logger log=Logger.getLogger(ViewAction.class);
+	@Resource
+	private ViewService viewService;
+	private Integer pageSize=10;
+    
+	/**
+	 *  分页查询	杨立  2017-09-21 
+	 * @param pageIndex
+	 * @param pageSize
+	 * @return
+	 */
+	@RequestMapping("/findPageData.action")
+	public @ResponseBody Object findPageData(Integer pageIndex,Integer viewId,Integer logic,String staffName,
+			String viewName,String level,String viewType,String province,String city,Integer staff_id,Integer power_id){
+		//验证参数
+		if(!"".equals(CheckUtil.checkArgsNotNull(pageIndex,staff_id,power_id))){
+			log.info(new Result(0,"参数错误"));
+			return new Result(0,"参数错误");
+		}
+		log.info("分页查询提交条件： pageIndex="+pageIndex+", viewId="+viewId+", logic="+logic+", staffName="+staffName+", viewName="+viewName
+				+", level="+level+", viewType="+viewType+", province="+province+", city="+city+", power_id="+power_id+", staff_id="+staff_id);
+		Pager<ViewMessage> pager=null;
+		if(power_id==0){
+			log.info("系统管理员查询");
+			//系统管理员
+			pager=viewService.getPager(pageIndex,pageSize,viewId,logic,staffName,viewName,level,viewType,province,city);
+		}else{
+			log.info("普通管理员");
+			//普通管理员	yangli	2017-10-19
+			pager=viewService.getPager(pageIndex,pageSize,viewId,logic,staffName,viewName,level,viewType,province,city,staff_id);
+		}
+		List<ViewList> list = new ArrayList<ViewList>();  
+		Map<Object,Object> listPage=new HashMap<Object,Object>();
+		if(pager.getDatas().size()!=0){
+			for (ViewMessage v : pager.getDatas()) {
+				int id = v.getId();
+				//查询每个景区所对应的产品数量
+				int num=viewService.getViewNum(id);
+				ViewList view =new ViewList();
+				view.setId(v.getId());
+				view.setName(v.getName());
+				view.setLevel(v.getLevel());
+				view.setSort(v.getSort());
+				view.setStaffId(v.getStaffId());
+				view.setBusinessTime(v.getBusinessTime());
+				view.setViewType(v.getType());
+				view.setNumber(num);
+				view.setStaffName(v.getStaffName());
+				list.add(view);
+			}
+			
+			listPage.put("allCount",pager.getAllCount());
+			listPage.put("currPage",pager.getCurrPage());
+			listPage.put("pageSize",pager.getPageSize());
+			listPage.put("pageCount",pager.getPageCount());
+			listPage.put("datas",list);
+			log.info(new Result(1,"查询成功",listPage));
+			return new Result(1,"查询成功",listPage);
+		}else{
+			log.info(new Result(0,"暂无数据",listPage));
+			return new Result(0,"暂无数据",listPage);
+		}
+
+	}
+	
+	/**
+	 * 添加请求，返回字典数据	杨立   2017-09-19 
+	 * @return
+	 */
+	@RequestMapping("/addUI.action")
+	public @ResponseBody Object addUI(){
+		//从字典表中获得景区分类
+		List<String> typeList=viewService.getViewType();
+		//从字典表中或的景区等级
+		List<String> levelList=viewService.getViewLevel();
+		//从字典中获得省份集合
+		List<String> viewProvince=viewService.getViewProvince();
+		//从字典中获得城市集合
+		List<String> viewCity=viewService.getViewCity();
+		//获得业务员的编号和姓名     杨立     2017-09-20
+		List<User> staff=viewService.getStaff();
+		ViewDictionary vd=new ViewDictionary();
+		vd.setViewType(typeList);
+		vd.setViewLevel(levelList);
+		vd.setViewProvince(viewProvince);
+		vd.setViewCity(viewCity);
+		vd.setStaff(staff);
+		log.info(new Result(1,"查询成功",vd));
+		return new Result(1,"查询成功",vd);
+	}
+	
+	/**
+	 * 添加景区信息    杨立   2017-09-20    完成状态，批量上传，需大批测试
+	 * @param view
+	 * @param request
+	 * @param file
+	 * @return
+	 */
+	@RequestMapping(value="/add.action")
+	public @ResponseBody Object add(ViewMessage view ,@RequestParam("file")MultipartFile[] file,HttpServletRequest request/*MultipartFile file,*/){
+		String name= view.getName();
+		String level=view.getLevel();
+		String viewType=view.getType();
+		String address=view.getAddress();
+		String businessTime=view.getBusinessTime();
+		String phone=view.getPhone();
+		String reminder=view.getReminder(); 
+		String discount=view.getDiscount();
+		String busMessage=view.getBusMessage();
+		String selfRoute=view.getSelfRoute();		
+		Integer staffId = view.getStaffId();
+		//根据staffId查名字	杨立	2017-10-26
+		view.setStaffName(viewService.getByStaffId(staffId));
+		Double lng =view.getLng();
+		Double lat=view.getLat();
+		Integer sort=view.getSort();
+		String province=view.getProvince();
+		String city=view.getCity();
+	/*	//验证参数
+		if(!"".equals(CheckUtil.checkArgsNotNull(name,level,viewType,address,businessTime,
+				phone,discount,staffId,lng,lat,sort,province,city))){
+			log.info(new Result(0,"参数错误"));
+			return new Result(0,"参数错误");
+		}
+*/
+		log.info("添加提交条件： name="+name+", level="+level+", viewType="+viewType+", address="+address+", businessTime="+businessTime+", phone="+phone+", reminder="+reminder+", discount="+discount
+				+", busMessage="+busMessage+", selfRoute="+selfRoute+", staffId="+staffId+", lng="+lng+", lat="+lat+", sort="+sort+", province="+province+", city="+city);
+		String picture=null;
+		//上传图片
+		if(file.length==0){
+			log.info(new Result(0,"参数错误，请添加照片"));
+			return new Result(0,"参数错误，请添加照片");
+		}
+		MultipartFile multipartFile = null;
+		for (int i=0;i<file.length; i++) {
+			multipartFile = file[i];
+			String iconName=multipartFile.getOriginalFilename();
+			//保存文件  
+			saveFile(multipartFile,request);  
+			//保存获取文件的路径
+			if(picture==null||picture.equals("")){
+				picture=new SimpleDateFormat("yyyyMMddhhmmss").format(new Date())+iconName;
+			}else{
+				picture=picture+","+new SimpleDateFormat("yyyyMMddhhmmss").format(new Date())+iconName;
+			}
+        }
+		
+        //设置图片属性
+        view.setPicture(picture);
+        //添加操作
+        
+        int rows= viewService.add(view);
+        if(rows>0){
+        	log.info(new Result(1,"添加成功"));
+        	return new Result(1,"添加成功");
+        } else {
+        	log.info(new Result(0,"添加失败"));
+        	return new Result(0,"添加失败");
+        } 
+	}
+	/*** 
+	 * 保存文件 
+	 * @param file 
+	 * @return 
+	 */  
+	public boolean saveFile(MultipartFile file,HttpServletRequest request) {  
+		String iconName=file.getOriginalFilename();
+		// 校验图片格式  
+		// 处理获取到的上传文件的文件名的路径部分，只保留文件名部分  
+		String lastName = iconName.substring(iconName.lastIndexOf("\\") + 1);  
+		// 得到上传文件的扩展名  
+		String fileExtName = lastName.substring(lastName.lastIndexOf(".") + 1);//doc,docx,pdf
+		// 校验图片格式 	这段代码没有测试
+		if("bmp".equalsIgnoreCase(fileExtName)||"jpg".equalsIgnoreCase(fileExtName)||
+				"jpeg".equalsIgnoreCase(fileExtName)||"gif".equalsIgnoreCase(fileExtName)||"png".equalsIgnoreCase(fileExtName)){
+			//获取上传文件的路径
+			String src=request.getSession().getServletContext().getRealPath("upload/images/")+File.separator;
+			String path=src+new SimpleDateFormat("yyyyMMddhhmmss").format(new Date())+iconName;
+			File newFile=new File(path);
+			try {
+				file.transferTo(newFile);
+			} catch (Exception e) {
+				e.printStackTrace();
+			} 
+			
+		}
+		return false; 	
+	}
+	/**
+	 * 修改数据回显  杨立  2017-09-21 
+	 * @param id
+	 * @return
+	 */
+	@RequestMapping("/editUI.action")
+	public @ResponseBody Object editUI(Integer id,HttpServletRequest request){
+		 
+		//验证参数 
+		if(!"".equals(CheckUtil.checkArgsNotNull(id))){
+			log.info(new Result(0,"参数错误"));
+			return new Result(0,"参数错误");
+		}
+		
+		
+		//查询
+		ViewMessage view = viewService.getById(id);
+		String picture = view.getPicture();
+		if(picture==null&&"".equals("")){
+			view.setPic(null);
+		}else{
+			String[] split = picture.split(",");
+			List<String> list=new ArrayList<String>();
+			for (String string : split) {
+				//正式服务器
+				String path="http://service.nvinfo.cn:8080"+request.getContextPath()+"/upload/images/"+string;
+				//String path="http://test.elvmedia.cn:8080"+request.getContextPath()+"/upload/images/"+string;
+				//String path="http://192.168.1.109:8080"+request.getContextPath()+"/upload/images/"+string;
+				list.add(path);
+			}
+			view.setPic(list);
+			
+		}
+		log.info(new Result(1,"查询成功",view));
+		return new Result(1,"查询成功",view);
+	}
+	
+	/**
+	 * 修改	杨立	2017-09-21
+	 * @param view
+	 * @param file
+	 * @param request
+	 * @return
+	 */
+	@RequestMapping("/edit.action")
+	public @ResponseBody Object edit(ViewMessage view,@RequestParam("file") MultipartFile[] file,HttpServletRequest request,Integer pageIndex){
+		Integer id=view.getId();
+		String name= view.getName();
+		String level=view.getLevel();
+		String viewType=view.getType();
+		String remark=view.getRemark();
+		String address=view.getAddress();
+		String businessTime=view.getBusinessTime();
+		String phone=view.getPhone();
+		String reminder=view.getReminder();
+		String discount=view.getDiscount();
+		String busMessage=view.getBusMessage();
+		String selfRoute=view.getSelfRoute();		
+		Integer staffId = view.getStaffId();
+		//根据staffId查名字	杨立	2017-10-26
+		view.setStaffName(viewService.getByStaffId(staffId));
+		Double lng =view.getLng();
+		Double lat=view.getLat();
+		Integer sort=view.getSort();
+		String province=view.getProvince();
+		String city=view.getCity();
+		@SuppressWarnings("unused")
+		boolean isLegal = false; 
+		/*//验证参数
+		if(!"".equals(CheckUtil.checkArgsNotNull(id,name,level,viewType,remark,address,businessTime,
+				phone,discount,staffId,lng,lat,sort,province,city))){
+			return new Result(0,"参数错误");
+		}*/
+		log.info("修改提交条件： id="+id+", name="+name+", level="+level+", viewType="+viewType+", remark="+remark+", address="+address+", businessTime="+businessTime+", phone="+
+				phone+", reminder="+reminder+", discount="+discount+", busMessage="+busMessage+", selfRoute="+selfRoute+", staffId="+staffId+", lng="+lng+", lat="+
+				lat+", sort="+sort+", province="+province+", city"+city);
+
+		//删除服务器中本条信息的照片，比较新传上来的图片picture和之前的有什么不同，把之前pic中在新的picture中没有的在服务器中 
+		//先清空服务器中的该景区的照片，picture设为空，再添加
+		ViewMessage viewPic = viewService.getById(id);
+		String[] arr = viewPic.getPicture().split(",");
+		for (int i=0;i<arr.length; i++) {
+			String src=request.getSession().getServletContext().getRealPath("upload/images/")+File.separator;
+			String path=src+arr[i];
+			// 判断目录或文件是否存在  
+			File file1 = new File(path); 
+			// 路径为文件且不为空则进行删除  
+			if (file1.isFile() && file1.exists()) {  
+				file1.delete();  
+			} 
+		}
+		viewService.delPicture(id);
+		String picture=null;
+		//上传图片
+		if(file.length==0){
+			log.info(new Result(0,"参数错误，请添加照片"));
+			return new Result(0,"参数错误，请添加照片");
+		}
+		MultipartFile multipartFile = null;
+		for (int i=0;i<file.length; i++) {
+			multipartFile = file[i];
+			//获取上传文件的路径
+			String iconName=multipartFile.getOriginalFilename();
+			//保存文件  
+			saveFile(multipartFile,request);  
+			//保存获取文件的路径
+			if(picture==null||picture.equals("")){
+				picture=new SimpleDateFormat("yyyyMMddhhmmss").format(new Date())+iconName;
+			}else{
+				picture=picture+","+new SimpleDateFormat("yyyyMMddhhmmss").format(new Date())+iconName;
+			}
+		}
+		//设置图片属性
+		view.setPicture(picture);
+
+		//修改操作
+		int rows= viewService.edit(view);
+		if(rows>0){
+			log.info(new Result(1,"修改成功"));
+			return new Result(1,"修改成功");
+		} else {
+			log.info(new Result(0,"修改失败"));
+			return new Result(0,"修改失败");
+		}		
+	}
+
+	/**
+	 * 删除  	杨立   2017-09-20  
+	 * @param id
+	 * @return
+	 */
+	@RequestMapping("/delete.action")
+	public @ResponseBody Object delete(Integer id){
+		//验证参数
+		if(!"".equals(CheckUtil.checkArgsNotNull(id))){
+			log.info(new Result(0,"参数错误"));
+			return new Result(0,"参数错误");
+		}
+		log.info("删除提交的信息：id="+id);
+		//再删除景区之前，先查询该景区是否有产品，若有，则返回删除失败
+		int viewCount=viewService.getProduct(id);
+		if(viewCount!=0){
+			log.info(new Result(0,"删除失败，该景区存在产品","id="+id));
+			return new Result(0,"删除失败，该景区存在产品");
+		}
+		//修改操作
+		int rows= viewService.delete(id);
+		if(rows>0){
+			log.info(new Result(1,"删除成功","id="+id));
+			return new Result(1,"删除成功");
+		} else {
+			log.info(new Result(0,"删除失败","id="+id));
+			return new Result(0,"删除失败");
+		}		
+	}
+
+	/**
+	 * 导出景区管理信息表格	杨立	2017-09-21   未放到项目中测    文件导出会覆盖之前的文件，并且不能自主选则盘符和改名
+	 * @param pageIndex
+	 * @return
+	 */
+	@RequestMapping("/outExcel.action")
+	public @ResponseBody Object outExcel(Integer pageIndex,Integer viewId,Integer logic,String staffName,
+			String viewName,String level,String viewType,String province,String city)  
+	{  
+		if(!"".equals(CheckUtil.checkArgsNotNull(pageIndex))){
+			log.info(new Result(0,"参数错误"));
+			return new Result(0,"参数错误");
+		}
+		log.info("导出提交条件："+","+pageIndex+","+viewId+","+logic+","+staffName+","+viewName+","+level+","+viewType+","+province+","+city);
+		Pager<ViewMessage> pager=viewService.getPager(pageIndex,pageSize,viewId,logic,staffName,viewName,level,viewType,province,city); 
+		ExportExcel<ViewExcel> ex = new ExportExcel<ViewExcel>();  
+		String[] headers =  
+			{ "景区编号", "景区名称", "景区等级", "景区分类" ,"景区产品总数", "景区排序", "营业时间","景区业务人员"};  
+
+		List<ViewExcel> dataset = new ArrayList<ViewExcel>();  
+		for (ViewMessage v : pager.getDatas()) {
+			int id = v.getId();
+			//查询每个景区所对应的产品数量
+			int num=viewService.getViewNum(id);
+			ViewExcel view =new ViewExcel();
+			view.setId(v.getId());
+			view.setName(v.getName());
+			view.setLevel(v.getLevel());
+			view.setViewType(v.getType());
+			view.setSort(v.getSort());
+			view.setNumber(num);
+			view.setBusinessTime(v.getBusinessTime());
+			view.setStaffName(v.getStaffName());
+			dataset.add(view);
+		}
+
+		try{
+			OutputStream out = new FileOutputStream("E://景区信息管理表.xls");  
+			ex.exportExcel(headers, dataset, out);  
+			out.close();  			
+			JOptionPane.showMessageDialog(null, "导出成功!");  
+		} catch (FileNotFoundException e) {  
+			e.printStackTrace();  
+		} catch (IOException e) {  
+			e.printStackTrace();  
+		} 
+		log.info(new Result(1,"导出成功"));
+		return new Result(1,"导出成功");
+	}  	
+}

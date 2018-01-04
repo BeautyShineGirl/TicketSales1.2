@@ -1,0 +1,98 @@
+package cn.nvinfo.dao.imp;
+
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+import javax.annotation.Resource;
+
+import org.mybatis.spring.SqlSessionTemplate;
+import org.springframework.stereotype.Repository;
+
+import cn.nvinfo.dao.PriorityDao;
+import cn.nvinfo.domain.Priority;
+/**
+ * 基础设置   优先级设置
+ * @author yangli 	2017.09.19
+ *
+ */
+
+@Repository
+public class PriorityDaoImp implements PriorityDao {
+
+	@Resource
+	private SqlSessionTemplate template;
+	
+	/*
+	 * 获得总记录数
+	 * (non-Javadoc)
+	 * @see cn.nvinfo.dao.CustomTypeDao#getAllCount()
+	 */
+	public int getAllCount() {
+		int rows=template.selectOne("priority.getAllCount");
+		return rows;
+	}
+
+	/*
+	 * 获得当前页的数据
+	 * (non-Javadoc)
+	 * @see cn.nvinfo.dao.CustomTypeDao#getPageDate(java.lang.Integer, java.lang.Integer)
+	 */
+	public List<Priority> getPageDate(Integer pageIndex, Integer pageSize) {
+		Map<String,Object> map=new HashMap<String, Object>();
+		map.put("pageIndex", (pageIndex-1)*pageSize);
+		map.put("pageSize", pageSize);
+		List<Priority> list = template.selectList("priority.getPageDate", map);
+		return list;
+	}
+
+	/*
+	 * 添加
+	 * (non-Javadoc)
+	 * @see cn.nvinfo.dao.CustomTypeDao#add(cn.nvinfo.domain.CustomType)
+	 */
+	public int add(Priority priority) {
+		int rows=template.insert("priority.save",priority);
+		return rows; 
+	}
+
+	/*
+	 * 修改
+	 * (non-Javadoc)
+	 * @see cn.nvinfo.dao.CustomTypeDao#edit(cn.nvinfo.domain.CustomType)
+	 */
+	public int edit(Priority priority) {
+		return template.update("priority.edit", priority);
+	}
+
+	/*
+	 * 根据id获得数据
+	 * (non-Javadoc)
+	 * @see cn.nvinfo.dao.CustomTypeDao#getById(java.lang.Integer)
+	 */
+	public Priority getById(Integer id) {
+		 
+		return template.selectOne("priority.getById", id);
+	}
+
+	/*
+	 * 删除
+	 * (non-Javadoc)
+	 * @see cn.nvinfo.dao.CustomTypeDao#delete(java.lang.Integer)
+	 */
+	public int delete(Integer id) {
+		
+		return template.delete("priority.delete", id);
+	}
+
+	/*
+	 * 属性获得priorty的集合
+	 * (non-Javadoc)
+	 * @see cn.nvinfo.dao.PriorityDao#getPriority()
+	 */
+	public List<Integer> getPriority() {
+		List<Integer> list = template.selectList("priority.getPriority");
+		return list;
+	}
+
+}

@@ -1,0 +1,94 @@
+package cn.nvinfo.service.imp;
+
+
+import java.util.List;
+
+import javax.annotation.Resource;
+
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import cn.nvinfo.dao.PriorityDao;
+import cn.nvinfo.domain.Priority;
+import cn.nvinfo.service.PriorityService;
+import cn.nvinfo.utils.Pager;
+
+/**
+ * 基础设置   优先级设置
+ * @author yangli 	2017.09.19
+ *
+ */
+@Service
+@Transactional
+public class PriorityServiceImp implements PriorityService {
+
+	@Resource
+	private PriorityDao priorityDao;
+
+
+	/*
+	 * 
+	 * 分页查询
+	 * (non-Javadoc)
+	 * @see cn.nvinfo.service.CustomTypeService#getPager(java.lang.Integer, java.lang.Integer)
+	 */
+	public Pager<Priority> getPager(Integer pageIndex, Integer pageSize) {
+		Pager<Priority> pager =new Pager<Priority>();
+		pager.setCurrPage(pageIndex);
+		pager.setPageSize(pageSize);
+		pager.setAllCount(priorityDao.getAllCount());
+		pager.setDatas(priorityDao.getPageDate(pageIndex,pageSize));
+		pager.setPageCount();
+		return pager;
+	}
+
+	/*
+	 * 添加
+	 * (non-Javadoc)
+	 * @see cn.nvinfo.service.CustomTypeService#add(cn.nvinfo.domain.CustomType)
+	 */
+	public int add(Priority priority) {
+		int rows=priorityDao.add(priority);
+		return rows;
+	}
+
+	/*
+	 * 修改
+	 * (non-Javadoc)
+	 * @see cn.nvinfo.service.CustomTypeService#edit(cn.nvinfo.domain.CustomType)
+	 */
+	public int edit(Priority priority) {
+		return priorityDao.edit(priority);
+	}
+	
+	/*
+	 * 根据id查询数据
+	 * (non-Javadoc)
+	 * @see cn.nvinfo.service.CustomTypeService#getById(java.lang.Integer)
+	 */
+	public Priority getById(Integer id) {
+		
+		return priorityDao.getById(id);
+	}
+
+	/*
+	 * 删除
+	 * (non-Javadoc)
+	 * @see cn.nvinfo.service.CustomTypeService#delete(java.lang.Integer)
+	 */
+	public int delete(Integer id) {
+		
+		return priorityDao.delete(id);
+	}
+
+	/*
+	 * 属性获得priorty的集合
+	 * (non-Javadoc)
+	 * @see cn.nvinfo.service.PriorityService#getPriority()
+	 */
+	public List<Integer> getPriority() {
+		return priorityDao.getPriority();
+	}
+
+	
+}

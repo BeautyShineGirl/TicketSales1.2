@@ -1,0 +1,806 @@
+package cn.nvinfo.controller;
+
+
+
+
+import java.util.ArrayList;
+import java.util.List;
+
+import javax.annotation.Resource;
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
+import javax.servlet.http.HttpSession;
+
+import org.apache.log4j.Logger;
+import org.springframework.context.annotation.Scope;
+import org.springframework.stereotype.Controller;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.ResponseBody;
+
+
+
+
+import cn.nvinfo.domain.Calendar;
+import cn.nvinfo.domain.Custom;
+import cn.nvinfo.domain.Images;
+import cn.nvinfo.domain.Order;
+import cn.nvinfo.domain.Product;
+import cn.nvinfo.domain.ViewMessage;
+import cn.nvinfo.service.UserService;
+
+import cn.nvinfo.utils.CheckUtil;
+import cn.nvinfo.utils.Result;
+/**
+ * 测试框架及返回json
+ * @author yangli
+ *
+ */
+@Controller
+@Scope("prototype")
+@RequestMapping("user")
+public class UserAction{
+	private static Logger log=Logger.getLogger(UserAction.class);
+	@Resource
+	private UserService userService;
+
+	/**
+	 * 登陆  杨立  2017-10-16
+	 * @param id
+	 * @return
+	 */
+	@RequestMapping("/login.action")
+	public @ResponseBody Object login(String userName,String password,HttpSession httpSession){
+		//验证参数
+		if(!"".equals(CheckUtil.checkArgsNotNull(userName,password))){
+			log.info(new Result(0,"参数错误"));
+			return new Result(0,"参数错误");
+		}
+		log.info("分销商登陆申请：userName="+userName+", password="+password);
+		//查询用户是否存在
+		Custom user=userService.getUser(userName,password);
+		httpSession.setAttribute("user", user);
+		int state = user.getState();
+		if(user!=null&&state==1){
+			log.info(new Result(1,"登陆成功","id="+user.getId()+", name="+user.getName()));
+			return new Result(1,"登陆成功",user);
+		}else{
+			if(state!=1){
+				log.info(new Result(0,"登录失败，审核中",user.getState()));
+				return new Result(0,"登录失败，审核中",user.getState());
+			}else{
+				log.info(new Result(0,"该用户不存在，登录失败"));
+				return new Result(0,"该用户不存在，登录失败");
+			}
+		}
+	}
+	/**
+	 * 保存订单  杨立  2017-10-18
+	 * @param id
+	 * @return
+	 */
+	@RequestMapping("/addOrder.action")
+	public @ResponseBody Object addOrder(Order order,HttpServletRequest requset,HttpServletResponse response){
+		String orderId=order.getOrderId();//订单号
+		Integer productId=order.getProductId();//产品编号
+		String productName=order.getProductName();//产品名称
+		Integer customId=order.getCustomId();//OTA编号
+		String custName=order.getCustName();//OTA名称
+		String custOrder=order.getCustOrder();//OTA订单号
+		Integer supplierId=order.getSupplierId();//供应商编号
+		String supplierOrder=order.getSupplierOrder();//供应商订单号
+		Integer viewId=order.getViewId();//景区编号
+		String ispay=order.getIspay();//支付方式
+		order.setOrderState(1);//订单状态  未支付
+		String payId=order.getPayId();//支付单号
+		Integer orderNumber=order.getOrderNumber();//预订数量
+		Double unitPrice=order.getUnitPrice();//单价
+		Double price=order.getPrice();//金额
+		String createDate=order.getCreateDate();//预定日期
+		String useDate=order.getUseDate();//使用日期
+		String orderCode=order.getOrderCode();//验证码列表
+		String userPhone=order.getUserPhone();//用户手机
+		String userName=order.getUserName();//用户姓名
+		String idCard=order.getIdCard();//用户身份证号
+		String remark=order.getRemark();//备注
+		//验证参数
+		if(!"".equals(CheckUtil.checkArgsNotNull(orderId,productId,productName,customId,custName,custOrder,supplierId,
+				supplierOrder,viewId,ispay,payId,orderNumber,unitPrice,price,createDate,useDate,orderCode,
+				userPhone,userName,idCard))){
+			log.info(new Result(0,"参数错误"));
+			return new Result(0,"参数错误");
+		}
+		log.info("提交订单申请：orderId="+orderId+", productId="+productId+", productName="+productName+", customId"+customId+", custName"+custName+", custOrder="+custOrder+", supplierId="+supplierId
+				+", supplierOrder="+supplierOrder+", viewId="+viewId+", ispay="+ispay+", payId="+payId+", orderNumber="+orderNumber+", unitPrice="+unitPrice+", price="+price+", createDate="+createDate
+				+", useDate="+useDate+", orderCode="+orderCode+", userPhone="+userPhone+", userName="+userName+", idCard="+idCard+", remark="+remark);
+		//在本地数据库中查询此订单是否已经存在	2017-11-09
+		List<String> orderIdList=userService.getByOrderId(orderId);
+		if(orderIdList.size()!=0){
+			log.info(new Result(0,"此订单号已存在，请重新提交"));
+			return new Result(0,"此订单号已存在，请重新提交");
+		}
+		//添加订单到数据库
+		int rows= userService.addOrder(order);
+		if(rows>0){
+			if("支付宝支付".equals(ispay)){
+				log.info("向alipayPayServlet(支付宝支付)提交参数：out_trade_no="+orderId+", total_amount="+price.toString()+", subject="+productName);
+				requset.setAttribute("out_trade_no",orderId );
+				requset.setAttribute("total_amount",price.toString() );
+				requset.setAttribute("subject",productName );
+				try {
+					requset.getRequestDispatcher("/alipayPayServlet").forward(requset, response);
+				} catch (Exception e) {
+					e.printStackTrace();
+				}
+			}
+			if("微信支付".equals(ispay)){
+				log.info("payServlet(向微信支付)提交参数：product_id="+productId.toString()+", out_trade_no="+orderId+", total_fee="+String.valueOf((int)(price*100)+", body="+productName));
+				requset.setAttribute("product_id", productId.toString());
+				requset.setAttribute("out_trade_no",orderId );
+				requset.setAttribute("total_fee",String.valueOf((int)(price*100)) );
+				requset.setAttribute("body",productName );
+				try {
+					requset.getRequestDispatcher("/payServlet").forward(requset, response);
+				} catch (Exception e) {
+					e.printStackTrace();
+				}
+			}
+
+			log.info(new Result(1,"添加订单成功，正在返回二维码"));
+			return new Result(1,"添加订单成功，正在返回二维码");
+		} else {
+			log.info(new Result(0,"添加订单失败"));
+			return new Result(0,"添加订单失败");
+		}
+	}
+
+	/**
+	 * 
+	 * 杨立	2017-11-1
+	 * @param id
+	 * @return
+
+	@RequestMapping("/scopeView.action")
+	public @ResponseBody Object scopeView(HttpServletRequest request){
+		//sort为0的景区	杨立	2017-11-1
+		ViewMessage view= userService.getScopeView();
+		if(view!=null){
+		String picture = view.getPicture();
+		if(picture==null&&"".equals("")){
+			view.setPic(null);
+		}else{
+			String[] split = picture.split(",");
+			List<String> list=new ArrayList<String>();
+			for (String string : split) {
+				String path="http://192.168.1.109:8080"+request.getContextPath()+"/upload/images/"+string;
+				list.add(path);
+			}
+			view.setPic(list);
+
+		}
+
+			log.info(new Result(1,"查询成功",view));
+			return new Result(1,"查询成功",view);
+		}else{
+			log.info(new Result(0,"查询失败"));
+			return new Result(0,"查询失败");
+		}
+	}
+	 */
+	/**
+	 * 分销商页面搜索框  杨立  2017-11-3
+	 * @param keyWord
+	 * @return
+	 */
+	@RequestMapping("/search.action")
+	public @ResponseBody Object search(String keyWord,HttpServletRequest request){
+		List<Product> list=userService.getKeyWordProduct(keyWord);
+		if(list.size()!=0){
+			for (Product product : list) {
+				if(product!=null){
+					String picture = product.getPicture();
+					if(picture==null&&"".equals("")){
+						product.setImages(null);
+					}else{
+						String[] split = picture.split(",");
+						List<Images> list2=new ArrayList<Images>();
+						for (String string : split) {
+							Images images=new Images();
+							images.setName(string);
+							String path="http://192.168.1.109:8080"+request.getContextPath()+"/upload/images/"+string;
+							images.setUrl(path);
+							list2.add(images);
+						}
+						product.setImages(list2);
+					}
+
+				}
+			}
+			log.info(new Result(1,"查询成功",list));
+			return new Result(1,"查询成功",list);
+		}else{
+			log.info(new Result(0,"暂无数据"));
+			return new Result(0,"暂无数据");
+		}
+	}
+	/*
+	 *  此段代码待优化
+	 */
+	/**
+	 * 轮播图	返回优先级0到4的产品及每个产品所对应的景区照片所对应的集合
+	 * 	杨立	2017-11-1
+	 * @param id
+	 * @return
+	 */
+	@RequestMapping("/scope.action")
+	public @ResponseBody Object scope(HttpServletRequest request){
+		//返回优先级0到4的产品及每个产品所对应的景区照片所对应的集合
+		List<Product> list= userService.getProduct();
+		if(list.size()!=0){
+			for (Product product : list) {
+				if(product!=null){
+					String picture = product.getPicture();
+					if(picture==null&&"".equals("")){
+						product.setImages(null);
+					}else{
+						String[] split = picture.split(",");
+						List<Images> list2=new ArrayList<Images>();
+						for (String string : split) {
+							Images images=new Images();
+							images.setName(string);
+							//String path="http://test.elvmedia.cn:8080"+request.getContextPath()+"/upload/images/"+string;
+							String path="http://192.168.1.109:8080"+request.getContextPath()+"/upload/images/"+string;
+							images.setUrl(path);
+							list2.add(images);
+						}
+						product.setImages(list2);
+					}
+
+				}
+			}
+			log.info(new Result(1,"查询成功",list));
+			return new Result(1,"查询成功",list);
+		}else{
+			log.info(new Result(0,"暂无数据"));
+			return new Result(0,"暂无数据");
+		}
+	}
+
+	/**
+	 * 特别推荐	优先级为5的产品	杨立	2017-11-1
+	 * @param id
+	 * @return
+	 */
+	@RequestMapping("/expeciallyProduct.action")
+	public @ResponseBody Object expeciallyProduct(HttpServletRequest request){
+		//优先级最高的产品	优先级为5	杨立	2017-11-1
+		List<Product> list= userService.getExpeciallyProduct();
+		if(list.size()!=0){
+			for (Product product : list) {
+				if(product!=null){
+					String picture = product.getPicture();
+					if(picture==null&&"".equals("")){
+						product.setImages(null);
+					}else{
+						String[] split = picture.split(",");
+						List<Images> list2=new ArrayList<Images>();
+						for (String string : split) {
+							Images images=new Images();
+							images.setName(string);
+							//String path="http://test.elvmedia.cn:8080"+request.getContextPath()+"/upload/images/"+string;
+							String path="http://192.168.1.109:8080"+request.getContextPath()+"/upload/images/"+string;
+							images.setUrl(path);
+							list2.add(images);
+						}
+						product.setImages(list2);
+					}
+
+				}
+			}
+			log.info(new Result(1,"查询成功",list));
+			return new Result(1,"查询成功",list);
+		}else{
+			log.info(new Result(0,"暂无数据"));
+			return new Result(0,"暂无数据");
+		}
+	}
+	/**
+	 * 特别推荐点击更多  	杨立	2017-11-1	修改	2017-11-07
+	 * @param 
+	 * @return
+	 */
+	@RequestMapping("/expeciallyMore.action")
+	public @ResponseBody Object expeciallyMore(HttpServletRequest request){
+		//点击更多时出现所有产品	按优先级顺序排列  	杨立	2017-11-1
+		List<Product> list= userService.getExpeciallyMore();
+		if(list.size()!=0){
+			for (Product product : list) {
+				if(product!=null){
+					String picture = product.getPicture();
+					if(picture==null&&"".equals("")){
+						product.setImages(null);
+					}else{
+						String[] split = picture.split(",");
+						List<Images> list2=new ArrayList<Images>();
+						for (String string : split) {
+							Images images=new Images();
+							images.setName(string);
+							//String path="http://test.elvmedia.cn:8080"+request.getContextPath()+"/upload/images/"+string;
+							String path="http://192.168.1.109:8080"+request.getContextPath()+"/upload/images/"+string;
+							images.setUrl(path);
+							list2.add(images);
+						}
+						product.setImages(list2);
+					}
+
+				}
+			}
+			log.info(new Result(1,"查询成功",list));
+			return new Result(1,"查询成功",list);
+		}else{
+			log.info(new Result(0,"暂无数据"));
+			return new Result(0,"暂无数据");
+		}
+	}
+	/**
+	 * 景点游	优先级为6的景区 	杨立	2017-11-1
+	 * @param id
+	 * @return
+	 */
+	@RequestMapping("/viewTraval.action")
+	public @ResponseBody Object viewTraval(HttpServletRequest request){
+		//景点游	优先级为6的景区 按优先级排列   从打到小的顺序	杨立	2017-11-1
+		List<Product> list= userService.getViewTravalPro();
+		if(list.size()!=0){
+			for (Product product : list) {
+				if(product!=null){
+					String picture = product.getPicture();
+					if(picture==null&&"".equals("")){
+						product.setImages(null);
+					}else{
+						String[] split = picture.split(",");
+						List<Images> list2=new ArrayList<Images>();
+						for (String string : split) {
+							Images images=new Images();
+							images.setName(string);
+							//String path="http://test.elvmedia.cn:8080"+request.getContextPath()+"/upload/images/"+string;
+							String path="http://192.168.1.109:8080"+request.getContextPath()+"/upload/images/"+string;
+							images.setUrl(path);
+							list2.add(images);
+						}
+						product.setImages(list2);
+					}
+
+				}
+			}
+			log.info(new Result(1,"查询成功",list));
+			return new Result(1,"查询成功",list);
+		}else{
+			log.info(new Result(0,"暂无数据"));
+			return new Result(0,"暂无数据");
+		}
+	}
+	/**
+	 * 景点游点击更多  	杨立	2017-11-07
+	 * @param 
+	 * @return
+	 */
+	@RequestMapping("/viewTravalMore.action")
+	public @ResponseBody Object viewTravalMore(HttpServletRequest request){
+		//景点游点击更多  	优先级为6  	杨立	2017-11-07
+		List<Product> list= userService.viewTravalMore();
+		if(list.size()!=0){
+			for (Product product : list) {
+				if(product!=null){
+					String picture = product.getPicture();
+					if(picture==null&&"".equals("")){
+						product.setImages(null);
+					}else{
+						String[] split = picture.split(",");
+						List<Images> list2=new ArrayList<Images>();
+						for (String string : split) {
+							Images images=new Images();
+							images.setName(string);
+							//String path="http://test.elvmedia.cn:8080"+request.getContextPath()+"/upload/images/"+string;
+							String path="http://192.168.1.109:8080"+request.getContextPath()+"/upload/images/"+string;
+							images.setUrl(path);
+							list2.add(images);
+						}
+						product.setImages(list2);
+					}
+
+				}
+			}
+			log.info(new Result(1,"查询成功",list));
+			return new Result(1,"查询成功",list);
+		}else{
+			log.info(new Result(0,"暂无数据"));
+			return new Result(0,"暂无数据");
+		}
+	}
+	/**
+	 * 周边游	优先级为7的景区  且不是西安的景区的产品	杨立	2017-11-1
+	 * @param id
+	 * @return
+	 */
+	@RequestMapping("/rimTraval.action")
+	public @ResponseBody Object rimTraval(HttpServletRequest request){
+		//周边游	优先级为7的景区  且不是西安的景区的产品	杨立	2017-11-1
+		List<Product> list= userService.getRimTravalPro();
+		if(list.size()!=0){
+			for (Product product : list) {
+				if(product!=null){
+					String picture = product.getPicture();
+					if(picture==null&&"".equals("")){
+						product.setImages(null);
+					}else{
+						String[] split = picture.split(",");
+						List<Images> list2=new ArrayList<Images>();
+						for (String string : split) {
+							Images images=new Images();
+							images.setName(string);
+							//String path="http://test.elvmedia.cn:8080"+request.getContextPath()+"/upload/images/"+string;
+							String path="http://192.168.1.109:8080"+request.getContextPath()+"/upload/images/"+string;
+							images.setUrl(path);
+							list2.add(images);
+						}
+						product.setImages(list2);
+					}
+
+				}
+			}
+			log.info(new Result(1,"查询成功",list));
+			return new Result(1,"查询成功",list);
+		}else{
+			log.info(new Result(0,"暂无数据"));
+			return new Result(0,"暂无数据");
+		}
+	}
+	/**
+	 * 周边游点击更多  	杨立	2017-11-07
+	 * @param 
+	 * @return
+	 */
+	@RequestMapping("/rimTravalMore.action")
+	public @ResponseBody Object rimTravalMore(HttpServletRequest request){
+		//周边游点击更多 	优先级为7  	杨立	2017-11-07
+		List<Product> list= userService.getRimTraval();
+		if(list.size()!=0){
+			for (Product product : list) {
+				if(product!=null){
+					String picture = product.getPicture();
+					if(picture==null&&"".equals("")){
+						product.setImages(null);
+					}else{
+						String[] split = picture.split(",");
+						List<Images> list2=new ArrayList<Images>();
+						for (String string : split) {
+							Images images=new Images();
+							images.setName(string);
+							//String path="http://test.elvmedia.cn:8080"+request.getContextPath()+"/upload/images/"+string;
+							String path="http://192.168.1.109:8080"+request.getContextPath()+"/upload/images/"+string;
+							images.setUrl(path);
+							list2.add(images);
+						}
+						product.setImages(list2);
+					}
+
+				}
+			}
+			log.info(new Result(1,"查询成功",list));
+			return new Result(1,"查询成功",list);
+		}else{
+			log.info(new Result(0,"暂无数据"));
+			return new Result(0,"暂无数据");
+		}
+	}
+	/**
+	 * 国内游	优先级为8的景区  	杨立	2017-11-1
+	 * @param id
+	 * @return
+	 */
+	@RequestMapping("/nationalTraval.action")
+	public @ResponseBody Object nationalTraval(HttpServletRequest request){
+		//国内游	优先级为8的景区  	杨立	2017-11-1
+		List<Product> list= userService.getNationalTravalPro();
+		if(list.size()!=0){
+			for (Product product : list) {
+				if(product!=null){
+					String picture = product.getPicture();
+					if(picture==null&&"".equals("")){
+						product.setImages(null);
+					}else{
+						String[] split = picture.split(",");
+						List<Images> list2=new ArrayList<Images>();
+						for (String string : split) {
+							Images images=new Images();
+							images.setName(string);
+							//String path="http://test.elvmedia.cn:8080"+request.getContextPath()+"/upload/images/"+string;
+							String path="http://192.168.1.109:8080"+request.getContextPath()+"/upload/images/"+string;
+							images.setUrl(path);
+							list2.add(images);
+						}
+						product.setImages(list2);
+					}
+
+				}
+			}
+			log.info(new Result(1,"查询成功",list));
+			return new Result(1,"查询成功",list);
+		}else{
+			log.info(new Result(0,"暂无数据"));
+			return new Result(0,"暂无数据");
+		}
+	}
+
+	/**
+	 * 国内游点击更多  	杨立	2017-11-07
+	 * @param 
+	 * @return
+	 */
+	@RequestMapping("/nationalTravalMore.action")
+	public @ResponseBody Object nationalTravalMore(HttpServletRequest request){
+		//国内游点击更多   优先级为8	杨立	2017-11-07
+		List<Product> list= userService.getNationalTravalMore();
+		if(list.size()!=0){
+			for (Product product : list) {
+				if(product!=null){
+					String picture = product.getPicture();
+					if(picture==null&&"".equals("")){
+						product.setImages(null);
+					}else{
+						String[] split = picture.split(",");
+						List<Images> list2=new ArrayList<Images>();
+						for (String string : split) {
+							Images images=new Images();
+							images.setName(string);
+							//String path="http://test.elvmedia.cn:8080"+request.getContextPath()+"/upload/images/"+string;
+							String path="http://192.168.1.109:8080"+request.getContextPath()+"/upload/images/"+string;
+							images.setUrl(path);
+							list2.add(images);
+						}
+						product.setImages(list2);
+					}
+
+				}
+			}
+			log.info(new Result(1,"查询成功",list));
+			return new Result(1,"查询成功",list);
+		}else{
+			log.info(new Result(0,"暂无数据"));
+			return new Result(0,"暂无数据");
+		}
+	}
+	/**
+	 * 根据id返回产品详情  杨立  2017-09-25	修改	2017-11-08
+	 * @param id
+	 * @return
+	 */
+	@RequestMapping("/detailPro.action")
+	public @ResponseBody Object detailPro(Integer id,HttpServletRequest request){
+		//验证参数
+		if(!"".equals(CheckUtil.checkArgsNotNull(id))){
+			log.info(new Result(0,"参数错误"));
+			return new Result(0,"参数错误");
+		}
+		//查询
+		Product product = userService.getById(id);
+		if(product!=null){
+			//处理照片
+			String picture = product.getPicture();
+			if(picture==null&&"".equals("")){
+				product.setImages(null);
+			}else{
+				String[] split = picture.split(",");
+				List<Images> list2=new ArrayList<Images>();
+				for (String string : split) {
+					Images images=new Images();
+					images.setName(string);
+					String path="http://192.168.1.109:8080"+request.getContextPath()+"/upload/images/"+string;
+					images.setUrl(path);
+					list2.add(images);
+				}
+				product.setImages(list2);
+			}
+			//处理价格日历，把价格日历按照键值对的形式返回
+			String datePrice=product.getDatePrice();
+			if(datePrice!=null){
+				String[] date_price = datePrice.split("\\|");
+				List<String> date_price_list=new ArrayList<String>();
+				for (String string : date_price) {
+					date_price_list.add(string);
+				}
+				List<Calendar> calendar=new ArrayList<Calendar>();
+				for (String string : date_price_list) {
+					String[] endPriceDate = string.split("&");
+					for (int i = 0; i < endPriceDate.length; i++) {
+						Calendar c=new Calendar();
+						c.setTimeDate(endPriceDate[0]);
+						c.setPrice(endPriceDate[endPriceDate.length-1]);
+						calendar.add(c);
+					}
+				}
+				product.setCalendar(calendar);
+			}else{
+				product.setCalendar(null);
+			}
+			
+			log.info(new Result(1,"查询成功",product));
+			return new Result(1,"查询成功",product);
+		}else{
+			log.info(new Result(0,"暂无数据"));
+			return new Result(0,"暂无数据");
+		}
+	}
+	
+	/*
+	 * 以下方法是首页为景区，点击后显示产品列表
+	 * 除轮播图外
+	 */
+	/**
+	 * 特别推荐景区信息
+	 * yangli 	2017-11-08
+	 */
+	@RequestMapping("/expeciallyView.action")
+	public @ResponseBody Object expeciallyView(HttpServletRequest request){
+		//获得sort为1的景区的集合	杨立	2017-11-08
+		List<ViewMessage> list= userService.getExpeciallyView();
+		if(list.size()!=0){
+			for (ViewMessage viewMessage : list) {
+				String picture = viewMessage.getPicture();
+				if(picture==null&&"".equals("")){
+					viewMessage.setPic(null);
+				}else{
+					String[] split = picture.split(",");
+					List<String> list1=new ArrayList<String>();
+					for (String string : split) {
+						String path="http://192.168.1.109:8080"+request.getContextPath()+"/upload/images/"+string;
+						list1.add(path);
+					}
+					viewMessage.setPic(list1);
+
+				}
+			}
+			log.info(new Result(1,"查询成功",list));
+			return new Result(1,"查询成功",list);
+		}else{
+			log.info(new Result(0,"暂无数据"));
+			return new Result(0,"暂无数据");
+		}
+	}
+
+	/**
+	 * 景点游景区信息
+	 * yangli 	2017-11-08
+	 */
+	@RequestMapping("/viewTravalView.action")
+	public @ResponseBody Object viewTravalView(HttpServletRequest request){
+		//获得sort为2的景区的集合	杨立	2017-11-08
+		List<ViewMessage> list= userService.getViewTravalView();
+		if(list.size()!=0){
+			for (ViewMessage viewMessage : list) {
+				String picture = viewMessage.getPicture();
+				if(picture==null&&"".equals("")){
+					viewMessage.setPic(null);
+				}else{
+					String[] split = picture.split(",");
+					List<String> list1=new ArrayList<String>();
+					for (String string : split) {
+						String path="http://192.168.1.109:8080"+request.getContextPath()+"/upload/images/"+string;
+						list1.add(path);
+					}
+					viewMessage.setPic(list1);
+
+				}
+			}
+			log.info(new Result(1,"查询成功",list));
+			return new Result(1,"查询成功",list);
+		}else{
+			log.info(new Result(0,"暂无数据"));
+			return new Result(0,"暂无数据");
+		}
+	}
+	
+	/**
+	 * 周边游景区信息
+	 * yangli 	2017-11-08
+	 */
+	@RequestMapping("/rimTravalView.action")
+	public @ResponseBody Object rimTravalView(HttpServletRequest request){
+		//周边游景区信息	获得sort为3的景区的集合	杨立	2017-11-08
+		List<ViewMessage> list= userService.getRimTravalView();
+		if(list.size()!=0){
+			for (ViewMessage viewMessage : list) {
+				String picture = viewMessage.getPicture();
+				if(picture==null&&"".equals("")){
+					viewMessage.setPic(null);
+				}else{
+					String[] split = picture.split(",");
+					List<String> list1=new ArrayList<String>();
+					for (String string : split) {
+						String path="http://192.168.1.109:8080"+request.getContextPath()+"/upload/images/"+string;
+						list1.add(path);
+					}
+					viewMessage.setPic(list1);
+
+				}
+			}
+			log.info(new Result(1,"查询成功",list));
+			return new Result(1,"查询成功",list);
+		}else{
+			log.info(new Result(0,"暂无数据"));
+			return new Result(0,"暂无数据");
+		}
+	}
+	
+	/**
+	 * 国内游景区信息
+	 * yangli 	2017-11-08
+	 */
+	@RequestMapping("/nationalTravalView.action")
+	public @ResponseBody Object nationalTravalView(HttpServletRequest request){
+		//国内游景区信息	获得sort为4的景区的集合	杨立	2017-11-08
+		List<ViewMessage> list= userService.getNationalTravalView();
+		if(list.size()!=0){
+			for (ViewMessage viewMessage : list) {
+				String picture = viewMessage.getPicture();
+				if(picture==null&&"".equals("")){
+					viewMessage.setPic(null);
+				}else{
+					String[] split = picture.split(",");
+					List<String> list1=new ArrayList<String>();
+					for (String string : split) {
+						String path="http://192.168.1.109:8080"+request.getContextPath()+"/upload/images/"+string;
+						list1.add(path);
+					}
+					viewMessage.setPic(list1);
+
+				}
+			}
+			log.info(new Result(1,"查询成功",list));
+			return new Result(1,"查询成功",list);
+		}else{
+			log.info(new Result(0,"暂无数据"));
+			return new Result(0,"暂无数据");
+		}
+	}
+	/**
+	 * 根据景区id返回产品List详情  杨立  2017-09-25	修改	2017-11-08
+	 * @param id
+	 * @return
+	 */
+	@RequestMapping("/productList.action")
+	public @ResponseBody Object productList(Integer id,HttpServletRequest request){
+		//验证参数
+		if(!"".equals(CheckUtil.checkArgsNotNull(id))){
+			log.info(new Result(0,"参数错误"));
+			return new Result(0,"参数错误");
+		}
+		//查询根据景区id返回产品List详情	yangli	2017-11-08
+		List<Product> list = userService.getByIdList(id);
+		if(list.size()!=0){
+			for (Product product2 : list) {
+				//处理照片
+				String picture = product2.getPicture();
+				if(picture==null&&"".equals("")){
+					product2.setImages(null);
+				}else{
+					String[] split = picture.split(",");	
+					List<Images> list2=new ArrayList<Images>();
+					for (String string : split) {
+						Images images=new Images();
+						images.setName(string);
+						String path="http://192.168.1.109:8080"+request.getContextPath()+"/upload/images/"+string;
+						images.setUrl(path);
+						list2.add(images);
+					}
+					product2.setImages(list2);
+				}
+			}
+			log.info(new Result(1,"查询成功",list));
+			return new Result(1,"查询成功",list);
+		}else{
+			log.info(new Result(0,"暂无数据"));
+			return new Result(0,"暂无数据");
+		}
+	}
+}

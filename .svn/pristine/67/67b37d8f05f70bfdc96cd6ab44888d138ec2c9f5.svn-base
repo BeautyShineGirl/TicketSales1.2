@@ -1,0 +1,649 @@
+package cn.nvinfo.controller;
+
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.OutputStream;
+import java.net.URLEncoder;
+import java.text.SimpleDateFormat;
+import java.util.ArrayList;
+import java.util.Date;
+import java.util.List;
+
+import javax.annotation.Resource;
+import javax.servlet.ServletContext;
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
+import javax.swing.JOptionPane;
+
+
+import org.apache.log4j.Logger;
+import org.springframework.context.annotation.Scope;
+import org.springframework.stereotype.Controller;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.ResponseBody;
+import org.springframework.web.multipart.MultipartFile;
+
+
+
+
+import cn.nvinfo.domain.Custom;
+import cn.nvinfo.domain.CustomType;
+import cn.nvinfo.service.CustomService;
+import cn.nvinfo.tools.CustomList;
+import cn.nvinfo.tools.ObjectAndList;
+import cn.nvinfo.utils.CheckUtil;
+import cn.nvinfo.utils.ExportExcel;
+import cn.nvinfo.utils.Pager;
+import cn.nvinfo.utils.Result;
+
+/**
+ *  分销商管理
+ * @author 杨立   2017-09-26
+ *
+ */
+
+@Controller
+@Scope("prototype")
+@RequestMapping("custom")
+public class CustomAction{
+	private static Logger log=Logger.getLogger(CustomAction.class);
+	@Resource
+	private CustomService customService;
+	private Integer pageSize=10;	
+	/**
+	 * 分页查询数据回显  杨立  2017-10-20
+	 * @param id
+	 * @return
+	 */
+	@RequestMapping("/addUI.action")
+	public @ResponseBody Object addUI(){
+		//查询分销商类别的集合
+		List<CustomType> customType=customService.getCustomType();
+		//从字典表中查询分销商等级
+		List<String> level=customService.getLevel();
+		ObjectAndList oal=new ObjectAndList();
+		oal.setCustomType(customType);
+		oal.setLevel(level);
+		log.info(new Result(1,"查询成功",oal));
+		return new Result(1,"查询成功",oal);
+	}
+	/**
+	 *  分页查询	杨立  2017-09-26
+	 * @param pageIndex
+	 * @param name
+	 * @param viewName
+	 * @param viewType
+	 * @param ticketType
+	 * @param endPrice
+	 * @return
+	 */
+	@RequestMapping("/findPageData.action")
+	public @ResponseBody Object findPageData(Integer pageIndex,Integer id,Integer logic,String name,String linkName,String custType,Integer level ){
+		//验证参数
+		if(!"".equals(CheckUtil.checkArgsNotNull(pageIndex))){
+			log.info(new Result(0,"参数错误"));
+			return new Result(0,"参数错误");
+		}
+		Pager<CustomList> pager=customService.getPager(pageIndex,pageSize,id,logic,name,linkName,custType,level);
+		log.info("分页查询提交条件：pageIndex="+pageIndex+", id="+id+", logic="+logic+", name="+name+", linkName="+linkName+", custType="+custType+", level="+level);
+		if(pager.getDatas().size()!=0){
+			log.info(new Result(1,"查询成功",pager));
+			return new Result(1,"查询成功",pager);
+		}else{
+			log.info(new Result(0,"暂无数据",pager));
+			return new Result(0,"暂无数据",pager);
+		}
+	}
+	/**
+	 *检查用户名是否已存在，如果已存在，则返回用户名已存在 	杨立   2017-09-29 
+	 * @return
+	 */
+	@RequestMapping("/checkUserName.action")
+	public @ResponseBody Object checkUserName(String userName){
+		//检查用户名是否已存在，如果已存在，则返回用户名已存在
+		List<String> ln=customService.checkUserName(userName);
+		for (int i = 0; i < ln.size(); i++) {
+			String string = ln.get(i);
+			if(string.equals(userName)){
+				log.info(new Result(0,"该用户名已存在，验证失败"));
+				return new Result(0,"该用户名已存在，验证失败");
+			}
+		}
+		log.info(new Result(1,"通过验证"));
+		return new Result(1,"通过验证");
+	}
+	/**
+	 * 分销商注册  杨立   2017-10-16	未测 
+	 * @param view
+	 * @param request
+	 * @param file
+	 * @return
+	 
+	@RequestMapping(value="/add.action")
+	public @ResponseBody Object add(String name,String userName,String password,Integer custType,Integer level,String phone,String linkMan){	
+		
+		//验证参数
+		if(!"".equals(CheckUtil.checkArgsNotNull(name,userName,password,custType,level,phone,linkMan))){
+			log.info(new Result(0,"参数错误"));
+			return new Result(0,"参数错误");
+		}
+		
+		log.info("添加提交条件："+name+","+userName+","+password+","+custType+","+level+","+phone+","+linkMan);
+		Custom custom=new Custom();
+		custom.setName(name);
+		custom.setUserName(userName);
+		custom.setPassword(password);
+		custom.setCustType(custType);
+		custom.setLevel(level);
+		custom.setPhone(phone);
+		custom.setLinkMan(linkMan);
+		//添加操作
+		int rows= customService.add(custom);
+		if(rows>0){
+			log.info(new Result(0,"注册成功"));
+			return new Result(1,"注册成功");
+		} else {
+			log.info(new Result(0,"注册失败"));
+			return new Result(0,"注册失败");
+		}
+	}*/
+	/**
+	 * 分销商注册   杨立   2017-11-08
+	 * @param view
+	 * @param request
+	 * @param file
+	 * @return
+	 */
+	@RequestMapping(value="/add.action")
+	public @ResponseBody Object add(Custom custom,@RequestParam("file")MultipartFile[] file,HttpServletRequest request){
+		log.info("注册分销商信息：name="+custom.getName()+", userName="+custom.getUserName()+", linkMan="+custom.getLinkMan()+", phone="+custom.getPhone()
+				+", password="+custom.getPassword()+", gender="+custom.getGender()+", mobilePhone="+custom.getMobilePhone()+", represement="+
+				custom.getRepresent()+", idCardType="+custom.getIdCardType()+", idCard="+custom.getIdCard()+", introduce="+custom.getIntroduce()
+				+", financeMan="+custom.getFinanceMan()+", financePhone="+custom.getFinancePhone()+", qq="+custom.getQq());
+		String fileUrl=null;
+		//上传文件
+		if(file.length==0){
+			fileUrl=null;
+		}else{
+			MultipartFile multipartFile = null;
+			for (int i=0;i<file.length; i++) {
+				multipartFile = file[i];
+				String iconName=multipartFile.getOriginalFilename();
+				//保存文件  
+				saveFile(multipartFile,request);  
+				//保存获取文件的路径
+				if(fileUrl==null||fileUrl.equals("")){
+					fileUrl=new SimpleDateFormat("yyyyMMddhhmmss").format(new Date())+iconName;
+				}else{
+					fileUrl=fileUrl+","+new SimpleDateFormat("yyyyMMddhhmmss").format(new Date())+iconName;
+				}
+			}
+		}
+		//设置图片属性
+		custom.setFileUrl(fileUrl);
+		//添加操作
+		int rows= customService.add(custom);
+		if(rows>0){
+			log.info(new Result(0,"提交成功"));
+			return new Result(1,"提交成功");
+		} else {
+			log.info(new Result(0,"提交失败"));
+			return new Result(0,"提交失败");
+		}
+	}
+	/*** 
+	 * 保存文件 
+	 * @param file 
+	 * @return 
+	 */  
+	public boolean saveFile(MultipartFile file,HttpServletRequest request) {  
+		String iconName=file.getOriginalFilename();
+		// 校验图片格式  
+		// 处理获取到的上传文件的文件名的路径部分，只保留文件名部分  
+		String lastName = iconName.substring(iconName.lastIndexOf("\\") + 1);  
+		// 得到上传文件的扩展名  
+		String fileExtName = lastName.substring(lastName.lastIndexOf(".") + 1);//doc,docx,pdf
+		// 校验图片格式 	这段代码没有测试
+		if("bmp".equals(fileExtName)||"jpg".equals(fileExtName)||
+				"jpeg".equals(fileExtName)||"gif".equals(fileExtName)||"png".equals(fileExtName)){
+			//获取上传文件的路径
+			String src=request.getSession().getServletContext().getRealPath("upload/images/")+File.separator;
+			String path=src+new SimpleDateFormat("yyyyMMddhhmmss").format(new Date())+iconName;
+			File newFile=new File(path);
+			try {
+				file.transferTo(newFile);
+			} catch (Exception e) {
+				e.printStackTrace();
+			} 
+			
+		}
+		return false; 	
+	}
+	/**
+	 * 修改数据回显  杨立  2017-09-27
+	 * @param id
+	 * @return
+	 */
+	@RequestMapping("/editUI.action")
+	public @ResponseBody Object editUI(Integer id){
+		//验证参数
+		if(!"".equals(CheckUtil.checkArgsNotNull(id))){
+			log.info(new Result(0,"参数错误"));
+			return new Result(0,"参数错误");
+		}
+		//查询出id的分销商数据
+		Custom custom=customService.getCustom(id);
+		
+		int state = custom.getState();
+		if(state==0){
+			custom.setStateName("未审核");
+		}else if(state==1){
+			custom.setStateName("正常");
+		}else if(state==3){
+			custom.setStateName("停用");
+		}
+		//查询分销商类别的集合
+		List<CustomType> customType=customService.getCustomType();
+		//从字典表中查询分销商等级
+		List<String> level=customService.getLevel();
+		ObjectAndList oal=new ObjectAndList();
+		oal.setCustom(custom);
+		oal.setCustomType(customType);
+		oal.setLevel(level);
+		log.info(new Result(1,"查询成功",oal));
+		return new Result(1,"查询成功",oal);
+	}
+	/**
+	 * 修改	杨立	2017-09-27
+	 * @param custom
+	 * @return
+	 */
+	@RequestMapping("/edit.action")
+	public @ResponseBody Object edit(Custom custom){
+		Integer id=custom.getId();
+		String name=custom.getName();
+		String userName=custom.getUserName();
+		String linkMan=custom.getLinkMan();
+		String phone=custom.getLinkMan();
+		Double creditLimit=custom.getCreditLimit();
+		Double cashMoney=custom.getCashMoney();
+		Integer custType=custom.getCustType();
+		Integer level=custom.getLevel();
+		Integer state=custom.getState();
+		
+		//验证参数
+		if(!"".equals(CheckUtil.checkArgsNotNull(id,name,userName,linkMan,phone,creditLimit,cashMoney,custType,level,state ))){
+			log.info(new Result(0,"参数错误"));
+			return new Result(0,"参数错误");
+		}
+		log.info("修改提交数据：id="+id+", name="+name+", userName="+userName+", linkMan="+linkMan+", phone="+phone+", creditLimit="+creditLimit
+				+", cashMoney="+cashMoney+", custType="+custType+", level="+level+", state="+state );
+		//修改操作
+		int rows= customService.edit(custom);
+		if(rows>0){
+			log.info(new Result(1,"修改成功"));
+			return new Result(1,"修改成功");
+		} else {
+			log.info(new Result(0,"修改失败"));
+			return new Result(0,"修改失败");
+		}		
+	}
+	/**
+	 * 审核分页显示    查询出state状态为0的分销商信息返回给页面	杨立	2017-09-27
+	 * @return
+	 */
+	@RequestMapping("/checkUI.action")
+	public @ResponseBody Object checkUI(Integer pageIndex){
+		//验证参数
+		if(!"".equals(CheckUtil.checkArgsNotNull(pageIndex))){
+			log.info(new Result(0,"参数错误"));
+			return new Result(0,"参数错误");
+		}
+		log.info("审核分页查询提交条件："+","+pageIndex);
+		Pager<CustomList> pager=customService.getCheckPager(pageIndex,pageSize);
+		if(pager.getDatas().size()!=0){
+			log.info(new Result(1,"查询成功",pager));
+			return new Result(1,"查询成功",pager);
+		}else{
+			log.info(new Result(1,"暂无数据"));
+			return new Result(1,"暂无数据");
+		}
+	}
+	/**
+	 * 审核通过操作	当前台页面点击审核通过的时候 ，会请求此方法将state状态改为1
+	 * 0未审核 1正常      2审核不通过 3停用
+	 * @param pageIndex
+	 * @return
+	 */
+	@RequestMapping("/check.action")
+	public @ResponseBody Object check(String idString){
+		log.info("审核通过提交的id字符串："+idString);
+		int rows=0;
+		String[] arr=idString.split(",");
+		for (int j = 0; j < arr.length; j++) {
+			for (int i = 0; i < arr.length; i++) {
+				Integer id=Integer.parseInt(arr[i]);
+				//验证参数
+				if(!"".equals(CheckUtil.checkArgsNotNull(id))){
+					log.info(new Result(0,"参数错误"));
+					return new Result(0,"参数错误");
+				}
+				//修改state状态码的步骤操作
+				rows= customService.editCheck(id);
+				rows++;
+			}
+		}
+		if(rows>0){
+			log.info(new Result(1,"操作成功"));
+			return new Result(1,"操作成功");
+		} else {
+			log.info(new Result(0,"操作失败"));
+			return new Result(0,"操作失败");
+		}	
+
+	}
+	/**
+	 * 审核不通过操作	当前台页面点击审核通过的时候 ，会请求此方法将state状态改为2
+	 * 0未审核 1正常      2审核不通过 3停用
+	 * @param pageIndex
+	 * @return
+	 */
+	@RequestMapping("/checkNotPass.action")
+	public @ResponseBody Object checkNotPass(String idString){
+		log.info("审核不通过提交的id字符串："+idString);
+		int rows=0;
+		String[] arr=idString.split(",");
+		for (int j = 0; j < arr.length; j++) {
+			for (int i = 0; i < arr.length; i++) {
+				Integer id=Integer.parseInt(arr[i]);
+				//验证参数
+				if(!"".equals(CheckUtil.checkArgsNotNull(id))){
+					log.info(new Result(0,"参数错误"));
+					return new Result(0,"参数错误");
+				}
+				//修改state状态码的步骤操作
+				rows= customService.checkNotPass(id);
+				rows++;
+			}
+		}
+		if(rows>0){
+			log.info(new Result(1,"操作成功"));
+			return new Result(1,"操作成功");
+		} else {
+			log.info(new Result(0,"操作失败"));
+			return new Result(0,"操作失败");
+		}	
+
+	}
+	/**
+	 * 合同管理数据回显	杨立	2017-09-28
+	 * @return
+	 */
+	@RequestMapping("/contractUI.action")
+	public @ResponseBody Object contractUI(){
+		List<Custom> custom=customService.getCuseom();
+		for (int i = 0; i < custom.size(); i++) {
+			String url = custom.get(i).getUrl();
+			if(url==null&&"".equals("")){
+				custom.get(i).setUrlList(null);
+			}else{
+				String[] split = url.split(",");
+				List<String> list=new ArrayList<String>();
+				for (String string : split) {
+					list.add(string);
+				}
+				custom.get(i).setUrlList(list);
+			}
+		}
+		if(custom.size()!=0){
+			log.info(new Result(1,"查询成功",custom));
+			return new Result(1,"查询成功",custom);
+		}else{
+			log.info(new Result(1,"暂无数据"));
+			return new Result(1,"暂无数据");
+		}
+	}
+	/**
+	 * 合同上传	杨立	2017-09-28
+	 * @return
+	 */
+	@RequestMapping("/contractUpload.action")
+	public @ResponseBody Object contractUpload(Integer id,HttpServletRequest request,MultipartFile file,String url){
+		//验证参数
+		if(!"".equals(CheckUtil.checkArgsNotNull(id,file))){
+			log.info(new Result(0,"参数错误"));
+			return new Result(0,"参数错误");
+		}
+		if(file == null){
+			log.info(new Result(0,"没有文件"));
+			return new Result(0,"没有文件");
+		}
+		log.info("合同上传提交数据："+","+id+","+file+","+url);
+		String iconName=file.getOriginalFilename();
+		
+		// 处理获取到的上传文件的文件名的路径部分，只保留文件名部分  
+		String lastName = iconName.substring(iconName.lastIndexOf("\\") + 1);  
+		// 得到上传文件的扩展名  
+		String fileExtName = lastName.substring(lastName.lastIndexOf(".") + 1);//doc,docx,pdf
+		// 校验图片格式 
+		if("doc".equals(fileExtName)||"docx".equals(fileExtName)||
+				"pdf".equals(fileExtName)||"txt".equals(fileExtName)){
+
+			//获取上传文件的路径
+			String src=request.getSession().getServletContext().getRealPath("upload/files/")+File.separator;
+			String path=src+new SimpleDateFormat("yyyyMMddhhmmss").format(new Date())+iconName;
+			File newFile=new File(path);
+			try {
+				file.transferTo(newFile);
+			} catch (Exception e) {
+				e.printStackTrace();
+			} 
+			//保存获取文件的路径
+			if(url==null||url.equals("")){
+				url=new SimpleDateFormat("yyyyMMddhhmmss").format(new Date())+iconName;
+			}else{
+				url=url+","+new SimpleDateFormat("yyyyMMddhhmmss").format(new Date())+iconName;
+			}
+			//添加操作
+			int rows= customService.upditURL(id,url);
+			Custom custom=customService.getCustom(id);
+			if(rows>0){
+				log.info(new Result(1,"上传成功",custom));
+				return new Result(1,"上传成功",custom);
+			} else {
+				log.info(new Result(0,"上传失败"));
+				return new Result(0,"上传失败");
+			}
+		}else{
+			log.info(new Result(0,"参数错误，文件类型错误"));
+			return new Result(0,"参数错误，文件类型错误");
+		}
+	}
+	/**
+	 * 合同下载
+	 * @param request
+	 * @param response
+	 */
+	@RequestMapping("/contractDownload.action")
+	public void contractDownload(HttpServletRequest request,  
+	        HttpServletResponse response,String fileName) {  
+		log.info("合同下载提交文件名："+fileName);
+	    // 得到要下载的文件名  
+	    try {  
+	    //    fileName = new String(fileName.getBytes("iso8859-1"), "UTF-8");  
+	        // 获取上传文件的目录  
+	        ServletContext sc = request.getSession().getServletContext();  
+	        // 上传位置  
+	        String fileSaveRootPath = sc.getRealPath("upload/files");   
+	        // 得到要下载的文件  
+	        File file = new File(fileSaveRootPath + "\\" + fileName);  
+	        // 如果文件不存在  
+	        if (!file.exists()) {  
+	            request.setAttribute("message", "您要下载的资源已被删除！！");  
+	            return;  
+	        }  
+	        // 处理文件名  
+	        String realname = fileName.substring(fileName.indexOf("_") + 1);  
+	        // 设置响应头，控制浏览器下载该文件  
+	        response.setHeader("content-disposition", "attachment;filename="  
+	                + URLEncoder.encode(realname, "UTF-8"));  
+	        // 读取要下载的文件，保存到文件输入流  
+	        FileInputStream in = new FileInputStream(fileSaveRootPath + "\\" + fileName);  
+	        // 创建输出流  
+	        OutputStream out = response.getOutputStream();  
+	        // 创建缓冲区  
+	        byte buffer[] = new byte[1024];  
+	        int len = 0;  
+	        // 循环将输入流中的内容读取到缓冲区当中  
+	        while ((len = in.read(buffer)) > 0) {  
+	            // 输出缓冲区的内容到浏览器，实现文件下载  
+	            out.write(buffer, 0, len);  
+	           
+	        }  
+	        // 关闭文件输入流  
+	        in.close();  
+	        // 关闭输出流  
+	        out.close();  
+	    } catch (Exception e) {  
+	  
+	    }  
+	   
+	}  
+	
+	/**
+	 * 合同删除  	杨立   2017-09-28
+	 * @param id
+	 * @return
+	 */
+	@RequestMapping("/delURL.action")
+	public @ResponseBody Object delURL(HttpServletRequest request,Integer id,String fileName,String url){
+		//验证参数
+		if(!"".equals(CheckUtil.checkArgsNotNull(id,fileName))){
+			log.info(new Result(0,"参数错误"));
+			return new Result(0,"参数错误");
+		}
+		log.info("合同删除提交的数据："+","+id+","+fileName);
+		//获取上传文件的路径
+		String src=request.getSession().getServletContext().getRealPath("upload/files/")+File.separator;
+		String path=src+fileName;
+		//删除服务器的文件
+		// 判断目录或文件是否存在  
+		File file = new File(path); 
+		// 路径为文件且不为空则进行删除  
+		if (file.isFile() && file.exists()) {  
+			file.delete();  
+		} 
+
+		String[] arr=url.split(",");
+		String newUrl=null;
+		for (int i = 0; i < arr.length; i++) {
+			if(!arr[i].equals(/*"upload/files/"+*/fileName)){
+				if(newUrl==null){
+					newUrl=arr[i];
+				}else{
+					newUrl=newUrl+","+arr[i];
+				}
+			}
+		}
+		List<Object> list1=new ArrayList<Object>();
+		List<String> list=new ArrayList<String>();
+		if(newUrl==null&&"".equals("")){
+			list.add(null);
+		}else{
+			String[] split = newUrl.split(",");
+			for (String string : split) {
+				list.add(string);
+			}
+		}
+		list1.add(newUrl);
+		list1.add(list);
+		int rows= customService.upditURL(id,newUrl);
+		if(rows>0){
+			log.info(new Result(1,"删除成功",list1));
+			return new Result(1,"删除成功",list1);
+		} else {
+			log.info(new Result(0,"删除成功"));
+			return new Result(0,"删除成功");
+		}
+	}
+	
+	/**
+	 * 删除  	杨立   2017-09-27
+	 * @param id
+	 * @return
+	 */
+	@RequestMapping("/delete.action")
+	public @ResponseBody Object delete(Integer id){
+		//验证参数
+		if(!"".equals(CheckUtil.checkArgsNotNull(id))){
+			log.info(new Result(0,"参数错误"));
+			return new Result(0,"参数错误");
+		}
+		log.info("分销商删除提交数据："+","+id);
+		//再删除分销商之前，先查询该分销商是否有产品，若有，则返回删除失败
+		int proCount=customService.getProduct();
+		if(proCount!=0){
+			log.info(new Result(0,"删除失败，该分销商存在产品","id="+id));
+			return new Result(0,"删除失败，该分销商存在产品");
+		}
+		//删除操作
+		int rows= customService.delete(id);
+		if(rows>0){
+			log.info(new Result(1,"删除成功","id="+id));
+			return new Result(1,"删除成功");
+		} else {
+			log.info(new Result(0,"删除失败","id="+id));
+			return new Result(0,"删除失败");
+		}		
+	}
+	/**
+	 * 导出分销商管理信息表格	杨立	2017-09-27   未放到项目中测    文件导出会覆盖之前的文件，并且不能自主选则盘符和改名
+	 * @param pageIndex
+	 * @return
+	 */
+	@RequestMapping("/outExcel.action")
+	public @ResponseBody Object outExcel(Integer pageIndex,Integer id,Integer logic,String name,String linkName,String custType,Integer level )  
+	{  
+		if(!"".equals(CheckUtil.checkArgsNotNull(pageIndex))){
+			return new Result(0,"参数错误");
+
+		}
+		log.info("导出提交条件："+","+pageIndex+","+id+","+logic+","+name+","+linkName+","+custType+","+level);
+		Pager<CustomList> pager=customService.getPager(pageIndex,pageSize,id,logic,name,linkName,custType,level);
+		ExportExcel<CustomList> ex = new ExportExcel<CustomList>();  
+		String[] headers =  
+			{ "分销商编号", "分销商名称", "分销商类别", "分销商等级" ,"电话","联系人" ,"授信额", "预存现金","分销商状态"};  
+		
+		List<CustomList> dataset = new ArrayList<CustomList>();  
+		for (CustomList c : pager.getDatas()) {
+			CustomList cl =new CustomList();
+			cl.setId(c.getId());
+			cl.setName(c.getName());
+			cl.setLinkMan(c.getLinkMan());
+			cl.setLevel(c.getLevel());
+			cl.setPhone(c.getPhone());
+			cl.setTypeName(c.getTypeName());
+			cl.setCashMoney(c.getCashMoney());
+			cl.setCreditLimit(c.getCreditLimit());
+			cl.setState(c.getState());
+			dataset.add(cl);
+		}
+		
+		try{
+			OutputStream out = new FileOutputStream("E://分销商信息管理表.xls");  
+			ex.exportExcel(headers, dataset, out);  
+			out.close();  			
+			JOptionPane.showMessageDialog(null, "导出成功!");  
+		} catch (FileNotFoundException e) {  
+			e.printStackTrace();  
+		} catch (IOException e) {  
+			e.printStackTrace();  
+		} 
+		log.info(new Result(1,"导出成功"));
+		 return new Result(1,"导出成功");
+	}  	
+}

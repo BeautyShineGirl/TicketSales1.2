@@ -1,0 +1,59 @@
+package cn.nvinfo.wxpay.servlet;
+
+import java.io.IOException;
+import java.util.Map;
+
+import javax.servlet.ServletException;
+import javax.servlet.http.HttpServlet;
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
+
+import org.apache.http.client.methods.CloseableHttpResponse;
+import org.apache.http.client.methods.HttpPost;
+import org.apache.http.impl.client.CloseableHttpClient;
+import org.apache.http.impl.client.HttpClients;
+import org.apache.http.util.EntityUtils;
+
+import cn.nvinfo.domain.Order;
+import cn.nvinfo.utils.SwiftpassConfig;
+import cn.nvinfo.utils.XmlUtils;
+/**
+ * 支付结果通知
+ * @author 杨立	2017-10-24
+ *
+ */
+public class PayResult extends HttpServlet {
+
+	private static final long serialVersionUID = 1L;
+
+	@Override
+	protected void doGet(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
+		doPost(req, resp);
+	}
+
+	@Override
+	protected void doPost(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
+			req.setCharacterEncoding("utf-8");
+			resp.setCharacterEncoding("utf-8");
+			resp.setHeader("Content-type", "text/html;charset=UTF-8");
+			String reqUrl = SwiftpassConfig.req_url;
+			CloseableHttpResponse response = null;
+			CloseableHttpClient client = null;
+			try {
+				HttpPost httpPost = new HttpPost(reqUrl);
+				client = HttpClients.createDefault();
+				response = client.execute(httpPost);
+				if(response != null && response.getEntity() != null){
+					Map<String,String> resultMap = XmlUtils.toMap(EntityUtils.toByteArray(response.getEntity()), "utf-8");
+					String return_code = resultMap.get("return_code");
+					if("SUCCESS".equals(return_code)){
+						Order order = new Order();
+						order.setOrderState(1);//将订单表中的orderState改为1，证明，订单已支付成功
+					}
+					resp.getWriter().println("<xml><return_code><![CDATA[SUCCESS]]></return_code><return_msg><![CDATA[OK]]></return_msg></xml>");
+				}
+			} catch (Exception e) {
+				e.printStackTrace();
+			}
+	}
+}

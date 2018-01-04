@@ -1,0 +1,84 @@
+package cn.nvinfo.service.imp;
+
+
+import javax.annotation.Resource;
+
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import cn.nvinfo.dao.CustomTypeDao;
+import cn.nvinfo.domain.CustomType;
+import cn.nvinfo.service.CustomTypeService;
+import cn.nvinfo.utils.Pager;
+
+/**
+ * 分销商管理以及基础设置中的分销商类别设置
+ * @author yangli 	2017.09.18
+ *
+ */
+@Service
+@Transactional
+public class CustomTypeServiceImp implements CustomTypeService {
+
+	@Resource
+	private CustomTypeDao ctDao;
+
+
+	/*
+	 * 
+	 * 分页查询
+	 * (non-Javadoc)
+	 * @see cn.nvinfo.service.CustomTypeService#getPager(java.lang.Integer, java.lang.Integer)
+	 */
+	public Pager<CustomType> getPager(Integer pageIndex, Integer pageSize) {
+		Pager<CustomType> pager =new Pager<CustomType>();
+		pager.setCurrPage(pageIndex);
+		pager.setPageSize(pageSize);
+		pager.setAllCount(ctDao.getAllCount());
+		pager.setDatas(ctDao.getPageDate(pageIndex,pageSize));
+		pager.setPageCount();
+		return pager;
+	}
+
+	/*
+	 * 添加
+	 * (non-Javadoc)
+	 * @see cn.nvinfo.service.CustomTypeService#add(cn.nvinfo.domain.CustomType)
+	 */
+	public int add(CustomType customType) {
+		int rows=ctDao.add(customType);
+		return rows;
+	}
+
+	/*
+	 * 修改
+	 * (non-Javadoc)
+	 * @see cn.nvinfo.service.CustomTypeService#edit(cn.nvinfo.domain.CustomType)
+	 */
+	public int edit(CustomType customType) {
+		int rows=ctDao.edit(customType);
+		return rows;
+	}
+	
+	/*
+	 * 根据id查询数据
+	 * (non-Javadoc)
+	 * @see cn.nvinfo.service.CustomTypeService#getById(java.lang.Integer)
+	 */
+	public CustomType getById(Integer id) {
+		
+		return ctDao.getById(id);
+	}
+
+	/*
+	 * 删除
+	 * (non-Javadoc)
+	 * @see cn.nvinfo.service.CustomTypeService#delete(java.lang.Integer)
+	 */
+	public int delete(Integer id) {
+		
+		return ctDao.delete(id);
+	}
+
+	
+}

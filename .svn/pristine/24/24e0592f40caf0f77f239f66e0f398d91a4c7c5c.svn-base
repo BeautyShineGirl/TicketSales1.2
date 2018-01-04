@@ -1,0 +1,24 @@
+package cn.nvinfo.tools;
+/**
+ * �۸������ ���ڷ��ظ�ҳ�����ݷ�װ
+ * @author ����	2017-11-08
+ *
+ */
+public class CalendarPrice {
+
+	private String timeDate;//����
+	private String price;//�۸�
+	public String getTimeDate() {
+		return timeDate;
+	}
+	public void setTimeDate(String timeDate) {
+		this.timeDate = timeDate;
+	}
+	public String getPrice() {
+		return price;
+	}
+	public void setPrice(String price) {
+		this.price = price;
+	}
+	
+}

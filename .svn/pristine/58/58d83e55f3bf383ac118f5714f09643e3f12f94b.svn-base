@@ -1,0 +1,73 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+	xmlns:tx="http://www.springframework.org/schema/tx" xmlns:context="http://www.springframework.org/schema/context"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:aop="http://www.springframework.org/schema/aop"
+	xsi:schemaLocation="
+        http://www.springframework.org/schema/beans 
+        http://www.springframework.org/schema/beans/spring-beans.xsd
+        http://www.springframework.org/schema/context 
+		http://www.springframework.org/schema/context/spring-context-3.2.xsd
+        http://www.springframework.org/schema/tx
+	    http://www.springframework.org/schema/tx/spring-tx-3.2.xsd
+        http://www.springframework.org/schema/aop   
+        http://www.springframework.org/schema/aop/spring-aop.xsd">
+	<!-- 扫描装配bean的扫描器 -->
+	<context:component-scan base-package="cn.nvinfo"></context:component-scan>
+
+	<!-- 配置sqlSessionFactory -->
+	<bean id="sqlSessionFactory" class="org.mybatis.spring.SqlSessionFactoryBean">
+		<!-- 指定数据库连接池 -->
+		<property name="dataSource" ref="dataSource"></property>
+		<property name="configLocation" value="classpath:SqlMapConfig.xml"></property>
+	</bean>
+
+	<!-- 配置SqlSessionTemplet -->
+	<bean id="sqlSessionTemplate" class="org.mybatis.spring.SqlSessionTemplate">
+		<constructor-arg index="0" ref="sqlSessionFactory"></constructor-arg>
+	</bean>
+
+	<!-- 引入外部资源文件 -->
+	<context:property-placeholder location="classpath:db.properties" />
+
+	<!-- 数据库连接池 -->
+	<bean id="dataSource" class=" org.apache.ibatis.datasource.pooled.PooledDataSource">
+		<!-- 数据库连接的信息 -->
+		<property name="driver" value="${DriverClass}"></property>
+		<property name="url" value="${url}"></property>
+		<property name="username" value="${user}"></property>
+		<property name="password" value="${password}"></property>
+	</bean>
+
+	<!-- 配置事务管理 -->
+	<bean id="transactionManager"
+		class=" org.springframework.jdbc.datasource.DataSourceTransactionManager">
+		<property name="dataSource" ref="dataSource"></property>
+	</bean>
+
+	<!-- 使用注解管理事务 -->
+	<tx:annotation-driven transaction-manager="transactionManager" />
+
+	<!-- 配置上传文件的bean 指定一个文件上传的大小 -->
+	<!-- 支持文件上传的配置，大小不超过2g -->
+	<bean id="multipartResolver"
+		class="org.springframework.web.multipart.commons.CommonsMultipartResolver">
+		<property name="maxUploadSize" value="2000000000" />
+	</bean>
+	<!-- 该异常是SpringMVC在检查上传的文件信息时抛出来的，而且此时还没有进入到Controller方法中 -->
+	<bean id="exceptionResolver"
+		class="org.springframework.web.servlet.handler.SimpleMappingExceptionResolver">
+		<property name="exceptionMappings">
+			<props>
+				<!-- 遇到MaxUploadSizeExceededException异常时，自动跳转到WebContent目录下的error.jsp页面 -->
+				<prop
+					key="org.springframework.web.multipart.MaxUploadSizeExceededException">error</prop>
+			</props>
+		</property>
+	</bean>
+
+	<!-- 添加切面 <aop:config> 声明一个切面 <aop:aspect id="logger" ref="log"> 切入点 <aop:pointcut 
+		expression="execution(* cn.nvinfo.service.UserServiceImpl.*(..))" id="userCut"/> 
+		通知 :要在切入点执行之前或者执行之后，你要加入的一个功能 前置通知 <aop:before pointcut-ref="userCut" method="invilide"/> 
+		</aop:aspect> </aop:config> -->
+		
+</beans>

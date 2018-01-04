@@ -1,0 +1,590 @@
+package cn.nvinfo.controller;
+
+import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.OutputStream;
+import java.text.DecimalFormat;
+import java.text.SimpleDateFormat;
+import java.util.ArrayList;
+import java.util.Calendar;
+import java.util.Date;
+import java.util.List;
+
+import javax.annotation.Resource;
+import javax.swing.JOptionPane;
+
+
+
+import org.apache.log4j.Logger;
+import org.json.JSONArray;
+import org.json.JSONException;
+import org.springframework.context.annotation.Scope;
+import org.springframework.stereotype.Controller;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.ResponseBody;
+
+
+
+
+
+import cn.nvinfo.domain.CalendarPriceTable;
+import cn.nvinfo.domain.CustomType;
+import cn.nvinfo.domain.Priority;
+import cn.nvinfo.domain.Product;
+import cn.nvinfo.domain.TicketType;
+import cn.nvinfo.service.ProductService;
+import cn.nvinfo.tools.CalendarPrice;
+import cn.nvinfo.tools.ProductDictionary;
+import cn.nvinfo.tools.INList;
+import cn.nvinfo.tools.ProductList;
+import cn.nvinfo.utils.CheckUtil;
+import cn.nvinfo.utils.ExportExcel;
+import cn.nvinfo.utils.Pager;
+import cn.nvinfo.utils.Result;
+import cn.nvinfo.utils.StringUtil;
+
+/**
+ * 产品信息管理
+ * @author 杨立   2017-09-25
+ *
+ */
+
+@Controller
+@Scope("prototype")
+@RequestMapping("product")
+public class ProductAction {
+	private static Logger log=Logger.getLogger(ProductAction.class);
+	@Resource
+	private ProductService productService;
+	private Integer pageSize=10;	
+
+
+	/**
+	 *  分页查询	杨立  2017-09-26
+	 * @param pageIndex
+	 * @param name
+	 * @param viewName
+	 * @param viewType
+	 * @param ticketType
+	 * @param endPrice
+	 * @return
+	 */
+	@RequestMapping("/findPageData.action")
+	public @ResponseBody Object findPageData(Integer pageIndex,Integer id,Integer logic,String name,String viewName,String viewType,
+			Integer ticketType,Double endPrice,Integer power_id,Integer staff_id){
+		//验证参数
+		if(!"".equals(CheckUtil.checkArgsNotNull(pageIndex,power_id,staff_id))){
+			log.info(new Result(0,"参数错误"));
+			return new Result(0,"参数错误");
+		}
+		log.info("分页查询提交条件： pageIndex="+pageIndex+", id="+id+", logic="+logic+", name="+name+", viewName="+viewName
+				+", viewType="+viewType+", ticketType="+ticketType+", endPrice="+endPrice+", staff_id="+staff_id+", power_id="+power_id);
+		Pager<ProductList> pager=null;
+		if(power_id==0){
+			log.info("系统管理员");
+			//系统管理员	yangli	2017-10-19	
+			pager=productService.getPager(pageIndex,pageSize,id,logic,name,viewName,viewType,ticketType,endPrice);
+		}else{
+			log.info("普通管理员");
+			//普通管理员	yangli	2017-10-19
+			pager=productService.getPager(pageIndex,pageSize,id,logic,name,viewName,viewType,ticketType,endPrice,staff_id);
+		}
+		if(pager.getDatas().size()!=0){
+			log.info(new Result(1,"查询成功",pager));
+			return new Result(1,"查询成功",pager);
+		}else{
+			log.info(new Result(0,"暂无数据",pager));
+			return new Result(0,"暂无数据",pager);
+		}
+	}
+
+
+	/**
+	 * 添加请求，返回字典数据	杨立   2017-09-25 
+	 * @return
+	 */
+	@RequestMapping("/addUI.action")
+	public @ResponseBody Object addUI(){
+		//从字典中获得门票类型
+		List<String> typeList=productService.getType();
+		//获得票型
+		List<INList> ticketType=productService.ticketType();
+		//从字典中是否可退
+		List<String> isCancel=productService.getIsCancel();
+		//获得优先级类别和优先级
+		List<Priority> priority=productService.getPriority();
+		//获得分销商列表
+		List<INList> custom=productService.getCustom();
+		//所属景区
+		List<INList> view = productService.getView();
+		//返回景区类别
+		List<INList> viewType = productService.getViewType();
+		//供应商
+		List<INList> supplier = productService.getSupplier();
+		ProductDictionary pd=new ProductDictionary();
+		pd.setTypeList(typeList);
+		pd.setTicketType(ticketType);
+		pd.setPriority(priority);
+		pd.setIsCancel(isCancel);
+		pd.setCustom(custom);
+		pd.setView(view);
+		pd.setSupplier(supplier);
+		pd.setViewType(viewType);
+		log.info(new Result(1,"查询成功",pd));
+		return new Result(1,"查询成功",pd);
+	}
+	/*
+	 * 获得从当前日期开始一个月的日期
+	 */
+	public static List<String> getDates() {
+		Calendar calendar=Calendar.getInstance();
+		calendar.set(calendar.get(Calendar.YEAR), calendar.get(Calendar.MONTH)+1, calendar.get(Calendar.DATE));
+		long next =calendar.getTimeInMillis();
+		calendar.add(Calendar.MONTH,-1);  // 这里想要得到当月的月份，这里写0不行？
+		List<String> list =new ArrayList<String>();
+		while(calendar.getTimeInMillis()!=next)
+		{
+			SimpleDateFormat format = new SimpleDateFormat("yyyy-MM-dd");
+			String localeString = format.format(calendar.getTime());
+
+			String substring = localeString.substring(0, 10);
+			list.add(substring);
+			int i=1;
+			calendar.add(Calendar.DAY_OF_MONTH, i++);
+		}
+		return list;
+	}
+	/**
+	 * 添加  杨立   2017-09-25 
+	 * @param view
+	 * @param request
+	 * @param file
+	 * @return
+	 */
+	@RequestMapping(value="/add.action")
+	public @ResponseBody Object add(Product product){	
+		String name=product.getName();
+		Integer view=product.getViewId();
+		Integer supplier=product.getSupplierId();
+		Double endPrice=product.getEndPrice();
+		Double marketPric=product.getMarketPrice();
+		String isSale=product.getIsSale();
+		String type=product.getType();
+		Integer ticketType=product.getTicketType();
+		String startTime=product.getStartTime();
+		String endTime=product.getEndTime();
+		Integer dailySale=product.getDailySale();
+		Integer num=product.getNum();
+		String orderTime=product.getOrderTime();
+		String isCancel=product.getIsCancel();
+		String notice=product.getNotice();
+		String costInside=product.getCostInside();
+		String costOutside=product.getCostOutside();
+		String userType=product.getUserType();
+		Integer priorityId=product.getPriorityId();
+		//根据priorityId获得优先级类别的名字	yangli	2017-10-19
+		List<String> priorityType=productService.getByProId(priorityId);
+		product.setPriorityType(priorityType.get(0));
+		String method=product.getMethod();
+		Integer customId=product.getCustomId();
+		//根据customId获得优先级类别的名字	yangli	2017-11-1
+		List<String> customName=productService.getBycustId(customId);
+		product.setCustomName(customName.get(0));
+		//random_calendar用于在自己添加产品时，根据此参数添加该产品的价格日历 表
+		String random_calendar = StringUtil.getRandomString(9);
+		product.setRandom_calendar(random_calendar);
+		//设置销售价	分销商看到的价格公式：结算价*票型加价率*分销商加价率
+		//首先根据票型知道票型加价率和加价元TicketType
+		Double ttP=0.0;
+		TicketType tt=productService.getTtById(ticketType);
+		if(tt.getCondPercent()!=0&&tt.getCondYuan()!=0){
+			ttP=tt.getCondYuan();
+		}else if(tt.getCondPercent()==0&&tt.getCondYuan()!=0){
+			ttP=tt.getCondYuan();
+		}else if(tt.getCondPercent()!=0&&tt.getCondYuan()==0){
+			ttP=tt.getCondPercent();
+		}else{
+			ttP=1.0;
+		}
+		//userType=1进行两次加价，票型和分销商，userType=0只进行票型加价
+		Double salePrice=0.0;
+		int userTypeInt = Integer.parseInt(userType);
+		if(userTypeInt==1){
+			//根据分销商知道分销商的加价率	yangli	2017-11-1
+			Double ctP=0.0;
+			CustomType ct=productService.getCtById(customId);
+			if(ct.getCondPercent()!=0&&ct.getCondYuan()!=0){
+				ctP=ct.getCondYuan();
+			}else if(ct.getCondPercent()==0&&ct.getCondYuan()!=0){
+				ctP=ct.getCondYuan();
+			}else if(ct.getCondPercent()!=0&&ct.getCondYuan()==0){
+				ctP=ct.getCondPercent();
+			}else{
+				ctP=1.0;
+			}
+			if(ttP==tt.getCondYuan()&&ctP==ct.getCondYuan()){//都是加价元
+				salePrice=endPrice+tt.getCondYuan()+ct.getCondYuan();
+			}else if(ttP==tt.getCondYuan()&&ctP==ct.getCondPercent()){//票型为加价元，分销商类别为加价率
+				salePrice=endPrice+tt.getCondYuan()+endPrice*(ct.getCondPercent());
+			}else if(ttP==tt.getCondPercent()&&ctP==ct.getCondYuan()){//票行为加价率，分销商类别为加价元
+				salePrice=endPrice+ct.getCondYuan()+endPrice*(tt.getCondPercent());
+			}else if(ctP==ct.getCondPercent()&&ttP==tt.getCondPercent()){//都为加价率
+				salePrice=endPrice+endPrice*tt.getCondPercent()+endPrice*ct.getCondPercent();
+			}else{//都为0
+				salePrice=endPrice;
+			}
+		}else{
+			if(tt.getCondPercent()!=0&&tt.getCondYuan()==0){
+				salePrice=endPrice+endPrice*(tt.getCondPercent());
+			}else if(tt.getCondPercent()==0&&tt.getCondYuan()!=0){
+				salePrice=endPrice+tt.getCondYuan();
+			}else if(tt.getCondPercent()==0&&tt.getCondYuan()==0){
+				salePrice=endPrice;
+			}else{ 
+				salePrice=endPrice+tt.getCondYuan();
+			}
+		}
+		DecimalFormat df=new DecimalFormat("#.0");
+		product.setSalePrice(Double.parseDouble(df.format(salePrice)));
+		//验证参数
+		if(!"".equals(CheckUtil.checkArgsNotNull(name,view,supplier,endPrice,marketPric,isSale,type,
+				ticketType,startTime,endTime,dailySale,num,orderTime,isCancel,notice,costInside,costOutside,
+				userType,priorityId,method,customId))){
+			log.info(new Result(0,"参数错误"));
+			return new Result(0,"参数错误");
+		}
+
+		log.info("添加提交条件：name="+name+", view="+view+", supplier="+supplier+", endPrice="+endPrice+", marketPric="+marketPric+", isSale="+isSale+", type="+type+", ticketType="+
+				ticketType+", startTime="+startTime+", endTime="+endTime+", dailySale="+dailySale+", num="+num+", orderTime="+orderTime+", isCancel"+isCancel+", notice="+notice+", costInside="+costInside+", costOutside"+costOutside+", userType="+
+				userType+", priorityId="+priorityId+", method="+method+", customId="+customId);
+		//添加操作
+		int rows= productService.add(product);
+		//根据random_calendar查出该产品对应的id，根据id把价格日历表中的价格填进去  2017-11-17
+		int product_id= productService.getIdByRandom(random_calendar);
+		//添加该产品所对应的价格日历表
+		//获取从当前时间开始的两个月的信息
+		Calendar calendar=Calendar.getInstance();
+		calendar.set(calendar.get(Calendar.YEAR), calendar.get(Calendar.MONTH)+2, calendar.get(Calendar.DATE));
+		long next =calendar.getTimeInMillis();
+		calendar.add(Calendar.MONTH,-1);  // 这里想要得到当月的月份，这里写0不行？
+		List<String> list2 =new ArrayList<String>();
+		while(calendar.getTimeInMillis()!=next)
+		{
+			SimpleDateFormat format = new SimpleDateFormat("yyyy-MM-dd");
+			String localeString = format.format(calendar.getTime());
+			String substring = localeString.substring(0, 10);
+			list2.add(substring);
+			int i=1;
+			calendar.add(Calendar.DAY_OF_MONTH, i++);
+		}
+		List<String> list =new ArrayList<String>();
+		for (String list1 : getDates()) {
+			list.add(list1);
+		}
+		for (String list3 : list2) {
+			list.add(list3);
+		}
+		String datePrice=null;
+		for (String date : list) {
+			if(datePrice==null||datePrice.equals("")){
+				datePrice=date+"&"+df.format(salePrice);
+			}else{
+				datePrice=datePrice+"|"+date+"&"+df.format(salePrice);
+			}
+		}
+		CalendarPriceTable cpt=new CalendarPriceTable();
+		cpt.setProduct_id(product_id);
+		cpt.setDatePrice(datePrice);
+		//添加价格日期到价格日期表	2017-11-17
+		productService.saveCpt(cpt);
+		Integer pageIndex=1;
+		Pager<ProductList> pager1=productService.getPager(pageIndex,pageSize,null,null,null,null,null,null,null);
+		Integer pageCount =pager1.getPageCount();
+		Pager<ProductList> pager=productService.getPager(pageCount,pageSize,null,null,null,null,null,null,null);
+		//List<ProductList> datas = pager.getDatas();
+		if(rows>0){
+			log.info(new Result(1,"添加成功",pager));
+			return new Result(1,"添加成功",pager);
+		} else {
+			log.info(new Result(0,"添加失败"));
+			return new Result(0,"添加失败");
+		}
+	}
+	/**
+	 * 修改数据回显  杨立  2017-09-25
+	 * @param id
+	 * @return
+	 */
+	@RequestMapping("/editUI.action")
+	public @ResponseBody Object editUI(Integer id){
+		//验证参数
+		if(!"".equals(CheckUtil.checkArgsNotNull(id))){
+			log.info(new Result(0,"参数错误"));
+			return new Result(0,"参数错误");
+		}
+		//查询
+		Product product = productService.getById(id);
+		//处理价格日历，把价格日历按照键值对的形式返回
+		String datePrice=product.getDatePrice();
+		if(datePrice!=null){
+			String[] date_price = datePrice.split("\\|");
+			List<CalendarPrice> calendar=new ArrayList<CalendarPrice>();
+			for (String string : date_price) {
+				String[] endPriceDate = string.split("&");
+				for (int i = 0; i < endPriceDate.length-1; i++) {
+					Double endPrice=Double.parseDouble(endPriceDate[1]);
+					//获得当前时间，判断日期是否在今天之后，如果是，则添加并返回，如果不是，则不添加
+					SimpleDateFormat sf = new SimpleDateFormat("yyyy-MM-dd");
+					String date = sf.format(new Date());
+					if(product.getSupplierId()==1){
+						if(date.hashCode()-endPriceDate[0].hashCode()<=0) {
+							CalendarPrice c=new CalendarPrice();
+							c.setDate(endPriceDate[0]);
+							c.setPrice(endPriceDate[endPriceDate.length-1]);
+							calendar.add(c);
+						}
+						else {
+							continue;
+						}         
+					}else{
+						if(date.hashCode()-endPriceDate[0].hashCode()<=0&&endPrice!=0) {
+							CalendarPrice c=new CalendarPrice();
+							c.setDate(endPriceDate[0]);
+							c.setPrice(endPriceDate[endPriceDate.length-1]);
+							calendar.add(c);
+						}
+						else {
+							continue;
+						}            
+
+					}
+				   
+
+				}
+			}
+			product.setCalendar(calendar);
+		}else{
+			product.setCalendar(null);
+		}
+		Integer viewId = product.getViewId();
+		Integer supplierId = product.getSupplierId();
+		//根据id获得景区名字
+		String viewName=productService.getViewName(viewId);
+		String supplierName=productService.getSupplierName(supplierId);
+		product.setViewName(viewName);
+		product.setSupplierName(supplierName);
+		log.info(new Result(1,"查询成功",product));
+		return new Result(1,"查询成功",product);
+	}
+	/**
+	 * 修改	杨立	2017-09-25
+	 * 
+	 */
+	@RequestMapping("/edit.action")
+	public @ResponseBody Object edit(Product product){
+		Integer id=product.getId();
+		String name=product.getName();
+		Integer view=product.getViewId();
+		Integer supplier=product.getSupplierId();
+		Double endPrice=product.getEndPrice();
+		Double marketPric=product.getMarketPrice();
+		Double salePrice=product.getSalePrice();
+		String isSale=product.getIsSale();
+		String type=product.getType();
+		Integer ticketType=product.getTicketType();
+		String startTime=product.getStartTime();
+		String endTime=product.getEndTime();
+		Integer dailySale=product.getDailySale();
+		Integer num=product.getNum();
+		String orderTime=product.getOrderTime();
+		String isCancel=product.getIsCancel();
+		String notice=product.getNotice();
+		String costInside=product.getCostInside();
+		String costOutside=product.getCostOutside();
+		String userType=product.getUserType();
+		//	String priorityType=product.getPriorityType();
+		Integer priorityId=product.getPriorityId();
+		//根据priorityId获得优先级类别的名字	yangli	2017-10-19
+		List<String> priorityType=productService.getByProId(priorityId);
+		product.setPriorityType(priorityType.get(0));
+		String method=product.getMethod();
+		Integer customId=product.getCustomId();
+		//根据customId获得优先级类别的名字	yangli	2017-11-1
+		List<String> customName=productService.getBycustId(customId);
+		product.setCustomName(customName.get(0));
+		String partPrice = product.getPartPrice();
+		//处理价格日历，把价格日历按照键值对的形式返回
+		String datePrice=productService.getById(id).getDatePrice();
+		String random_calendar=product.getRandom_calendar();
+		//验证参数
+		if(!"".equals(CheckUtil.checkArgsNotNull(id,name,view,supplier,endPrice,marketPric,salePrice,isSale,type,
+				ticketType,startTime,endTime,dailySale,num,orderTime,isCancel,notice,costInside,costOutside,
+				userType,priorityType,priorityId,method,customId))){
+			log.info(new Result(0,"参数错误"));
+			return new Result(0,"参数错误");
+		}
+		log.info("修改提交条件： id="+id+", name="+name+", view="+view+", supplier="+supplier+", endPrice="+endPrice+", marketPric="+marketPric+", salePrice="+salePrice
+				+", isSale="+isSale+", type="+type+", ticketType="+ticketType+", startTime="+startTime+", endTime="+endTime+", dailySale="+dailySale+", num="+num+", orderTime="+orderTime
+				+", isCance="+isCancel+", notice="+notice+", costInside="+costInside+", costOutside="+costOutside+", userType="+
+				userType+", priorityType="+priorityType+", priorityId="+priorityId+", method="+method+", customId="+customId+", partPrice="+partPrice+", datePrice"+datePrice);
+		/*
+		 * //修改操作
+		 * 如果salePrcie不等于原来销售价，且partPrice等于null时，认为是整体修改，此时修改产品表中的销售价,
+		 * 
+		 */
+		DecimalFormat df=new DecimalFormat("#.0");
+		Product product1 = productService.getById(id);
+		Double salePriceOld = product1.getSalePrice();
+		int rowsProduct=0;
+		rowsProduct= productService.edit(product);
+		//查询原来销售价，价格日历中的日期的价格全部变成新的销售价
+		//根据random_calendar查出该产品对应的id，根据id把价格日历表中的价格填进去  2017-11-17
+		int product_id= productService.getIdByRandom(random_calendar);
+		String newDatePrice=null;
+		if(salePriceOld-salePrice!=0){
+			//获取从当前时间开始的两个月的信息
+			Calendar calendar=Calendar.getInstance();
+			calendar.set(calendar.get(Calendar.YEAR), calendar.get(Calendar.MONTH)+2, calendar.get(Calendar.DATE));
+			long next =calendar.getTimeInMillis();
+			calendar.add(Calendar.MONTH,-1);  // 这里想要得到当月的月份，这里写0不行？
+			List<String> list2 =new ArrayList<String>();
+			while(calendar.getTimeInMillis()!=next)
+			{
+				SimpleDateFormat format = new SimpleDateFormat("yyyy-MM-dd");
+				String localeString = format.format(calendar.getTime());
+				String substring = localeString.substring(0, 10);
+				list2.add(substring);
+				int i=1;
+				calendar.add(Calendar.DAY_OF_MONTH, i++);
+			}
+			List<String> list =new ArrayList<String>();
+			for (String list1 : getDates()) {
+				list.add(list1);
+			}
+			for (String list3 : list2) {
+				list.add(list3);
+			}
+			for (String date : list) {
+				if(newDatePrice==null||newDatePrice.equals("")){
+					newDatePrice=date+"&"+df.format(salePrice);
+				}else{
+					newDatePrice=newDatePrice+"|"+date+"&"+df.format(salePrice);
+				}
+			}
+		}else{
+			
+			/*
+			 * 如果salePrice等于原来的销售价，且partPrice不等于null时，认为是个别日期的销售价修改，这个时候修改calendar表中的个别日期所对应的销售价
+			 * 把原来的datePrice拿到后截开，遍历，partPrice中各组的日期，把对应的日期价格替换掉
+			 * [{"date":"2017-12-13","price":"66"},{"date":"2017-12-14","price":"666"},{"date":"2017-12-15","price":"66"},{"date":"2017-12-16","price":"30.0"},
+			 * {"date":"2017-12-17","price":"30.0"},{"date":"2017-12-18","price":"30.0"},{"date":"2017-12-19","price":"30.0"},{"date":"2017-12-20","price":"30.0"},]
+			 */
+			JSONArray ja=null;
+			try {
+				ja = new JSONArray(partPrice);
+				for (int i = 0; i < ja.length(); i++) {
+					String date = ja.getJSONObject(i).getString("date");
+					Double price=Double.parseDouble(ja.getJSONObject(i).getString("price"));
+					if(newDatePrice==null||newDatePrice.equals("")){
+						newDatePrice=date+"&"+df.format(price);
+					}else{
+						newDatePrice=newDatePrice+"|"+date+"&"+df.format(price);
+					}
+				}
+			} catch (JSONException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+		}
+		 
+		 CalendarPriceTable cpt=new CalendarPriceTable();
+		 cpt.setProduct_id(product_id);
+		 cpt.setDatePrice(newDatePrice);
+		//修改价格日历表的操作	杨立	2017-12-13
+		 int rowsCalendar= productService.updateCalendar(cpt);
+		if(rowsProduct>0&&rowsCalendar>0){
+			log.info(new Result(1,"修改成功"));
+			return new Result(1,"修改成功");
+		} else {
+			log.info(new Result(0,"修改失败"));
+			return new Result(0,"修改失败");
+		}		
+	}
+	/**
+	 * 删除  	杨立   2017-09-25
+	 * @param id
+	 * @return
+	 */
+	@RequestMapping("/delete.action")
+	public @ResponseBody Object delete(Integer id){
+		//验证参数
+		if(!"".equals(CheckUtil.checkArgsNotNull(id))){
+			log.info(new Result(0,"参数错误"));
+			return new Result(0,"参数错误");
+		}
+		log.info("删除提交的信息："+","+id);
+		//再删除产品之前，先查询该产品是否有订单，若有，则返回删除失败	yangli	2017-10-19
+		int viewCount=productService.getOrder(id);
+		if(viewCount!=0){
+			log.info(new Result(0,"删除失败，该产品存在订单","id="+id));
+			return new Result(0,"删除失败，该产品存在订单");
+		}
+
+		//修改操作
+		int rows= productService.delete(id);
+		//在删除产品之后删除该产品的价格日历	更新	杨立	2017-12-06
+		int rowCalendar=productService.deleteCalendaer(id);
+		if(rows>0&&rowCalendar>0){
+			log.info(new Result(1,"删除成功","id="+id));
+			return new Result(1,"删除成功");
+		} else {
+			log.info(new Result(0,"删除失败","id="+id));
+			return new Result(0,"删除失败");
+		}		
+	}
+
+	/**
+	 * 导出产品管理信息表格	杨立	2017-09-26   未放到项目中测    文件导出会覆盖之前的文件，并且不能自主选则盘符和改名
+	 * @param pageIndex
+	 * @return
+	 */
+	@RequestMapping("/outExcel.action")
+	public @ResponseBody Object outExcel(Integer pageIndex,Integer id, Integer logic,String name,String viewName,String viewType,Integer ticketType,Double endPrice)  
+	{  
+		if(!"".equals(CheckUtil.checkArgsNotNull(pageIndex))){
+			log.info(new Result(0,"参数错误"));
+			return new Result(0,"参数错误");
+		}
+		log.info("导出提交信息："+","+pageIndex+","+id+","+logic+","+name+","+viewName+","+viewType+","+ticketType+","+endPrice);
+		Pager<ProductList> pager=productService.getPager(pageIndex,pageSize,id,logic,name,viewName,viewType,ticketType,endPrice);
+		ExportExcel<ProductList> ex = new ExportExcel<ProductList>();  
+		String[] headers =  
+			{ "产品编号", "产品名称", "所属地区", "供应商" ,"结算价", "景门市价", "优先级","是否销售"};  
+
+		List<ProductList> dataset = new ArrayList<ProductList>();  
+		for (ProductList p : pager.getDatas()) {
+			ProductList pl =new ProductList();
+			pl.setId(p.getId());
+			pl.setName(p.getName());
+			pl.setViewName(pl.getViewName());
+			pl.setSupplierName(pl.getSupplierName());
+			pl.setEndPrice(pl.getEndPrice());
+			pl.setPriorityType(pl.getPriorityType());
+			pl.setIsSale(pl.getIsSale());
+			dataset.add(pl);
+		}
+
+		try{
+			OutputStream out = new FileOutputStream("E://产品信息管理表.xls");  
+			ex.exportExcel(headers, dataset, out);  
+			out.close();  			
+			JOptionPane.showMessageDialog(null, "导出成功!");  
+		} catch (FileNotFoundException e) {  
+			e.printStackTrace();  
+		} catch (IOException e) {  
+			e.printStackTrace();  
+		} 
+		return new Result(1,"导出成功");
+	}  	
+}

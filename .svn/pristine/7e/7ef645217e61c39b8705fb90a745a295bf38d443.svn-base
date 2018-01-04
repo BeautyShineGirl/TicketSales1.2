@@ -1,0 +1,46 @@
+package cn.nvinfo.service.imp;
+
+
+
+import javax.annotation.Resource;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import cn.nvinfo.dao.UserDao;
+import cn.nvinfo.domain.Custom;
+import cn.nvinfo.domain.Order;
+import cn.nvinfo.service.UserService;
+
+
+@Service
+@Transactional
+public class UserServiceImp implements UserService {
+
+	@Resource
+	private UserDao userDao;
+
+
+	/*
+	 * 登陆  杨立  2017-10-16(non-Javadoc)
+	 * @see cn.nvinfo.service.UserService#getUser(java.lang.String, java.lang.String)
+	 */
+	public Custom getUser(String loginName, String password) {
+		return userDao.getUser(loginName,password);
+	}
+
+	/*
+	 * 添加订单到数据库	YANGLI 2017-10-18(non-Javadoc)
+	 * @see cn.nvinfo.service.UserService#addOrder(cn.nvinfo.domain.Order)
+	 */
+	public int addOrder(Order order) {
+		return userDao.addOrder(order);
+	}
+	/*
+	 * 修改订单状态为为1，支付成功，添加微信订单号到order表	杨立	2017-10-26(non-Javadoc)
+	 * @see cn.nvinfo.service.UserService#updateOrder(cn.nvinfo.domain.Order)
+	 */
+	public int updateOrder(Order order) {
+		return userDao.updateOrder(order);
+	}
+
+}

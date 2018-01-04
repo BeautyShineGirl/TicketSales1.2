@@ -1,0 +1,178 @@
+package cn.nvinfo.wxpay.servlet;
+
+
+import java.io.IOException;
+import java.util.Date;
+import java.util.Map;
+import java.util.SortedMap;
+
+import javax.servlet.ServletException;
+import javax.servlet.http.HttpServlet;
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
+
+import org.apache.http.client.methods.CloseableHttpResponse;
+import org.apache.http.client.methods.HttpPost;
+import org.apache.http.entity.StringEntity;
+import org.apache.http.impl.client.CloseableHttpClient;
+import org.apache.http.impl.client.HttpClients;
+import org.apache.http.util.EntityUtils;
+
+import cn.nvinfo.service.UserService;
+import cn.nvinfo.service.imp.UserServiceImp;
+import cn.nvinfo.utils.MD5;
+import cn.nvinfo.utils.QRCodeUtil;
+import cn.nvinfo.utils.SignUtils;
+import cn.nvinfo.utils.StringUtil;
+import cn.nvinfo.utils.SwiftpassConfig;
+import cn.nvinfo.utils.XmlUtils;
+
+
+/**
+ * 测试支付
+ * @author admin
+ *
+ */
+public class PayServlet extends HttpServlet {
+	private static final long serialVersionUID = 1L;
+	public static Map<String,String> orderResult; //用来存储订单的交易状态(key:订单号，value:状态(0:未支付，1：已支付))  ---- 这里可以根据需要存储在数据库中
+	public static int orderStatus=0;
+	@Override
+	protected void doGet(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
+		doPost(req, resp);
+	}
+
+	@Override
+	protected void doPost(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
+		req.setCharacterEncoding("utf-8");
+		resp.setCharacterEncoding("utf-8");
+
+		String body = req.getParameter("body");//冰雪大世界成人票
+		String total_fee=req.getParameter("total_fee");//标价金额
+		String out_trade_no=req.getParameter("out_trade_no");//商户订单号
+		Integer id=Integer.parseInt(req.getParameter("id"));//order的id
+		//查询提交的订单 是否已支付，如未支付orderState=1，则向微信发出支付请求	杨立	2017-10-26
+		UserService userService=new UserServiceImp();
+		int state=userService.selectOrderState(id);
+		if(state==1){
+			SortedMap<String,String> map = XmlUtils.getParameterMap(req);
+			map.put("appid", "wxaea446e27328b87a");//公众账号id
+			map.put("mch_id", SwiftpassConfig.mch_id);//商户号
+			map.put("notify_url", SwiftpassConfig.notify_url);//通知地址
+			map.put("nonce_str", String.valueOf(new Date().getTime()));//随即字符串
+			map.put("body", body);//商品描述
+			map.put("total_fee", total_fee);//标价金额    微信的单位是分
+			map.put("spbill_create_ip", "123.12.12.123");//终端号
+			map.put("trade_type", "NATIVE");//交易类型
+			map.put("out_trade_no", out_trade_no);//商户订单号
+			Map<String,String> params = SignUtils.paraFilter(map);
+			StringBuilder buf = new StringBuilder((params.size() +1) * 10);
+			SignUtils.buildPayParams(buf,params,false);
+			String preStr = buf.toString();
+			String sign = MD5.sign(preStr, "&key=" + SwiftpassConfig.key, "utf-8");
+			map.put("sign", sign);//签名
+			String reqUrl = SwiftpassConfig.req_url;
+			CloseableHttpResponse response = null;
+			CloseableHttpClient client = null;
+			String res = null;
+			try {
+				HttpPost httpPost = new HttpPost(reqUrl);
+				StringEntity entityParams = new StringEntity(XmlUtils.parseXML(map),"utf-8");
+				httpPost.setEntity(entityParams);
+				//httpPost.setHeader("Content-Type", "text/xml;charset=ISO-8859-1");
+				client = HttpClients.createDefault();
+				response = client.execute(httpPost);
+				if(response != null && response.getEntity() != null){
+					Map<String,String> resultMap = XmlUtils.toMap(EntityUtils.toByteArray(response.getEntity()), "utf-8");
+					//res = XmlUtils.toXml(resultMap);
+					//处理返回的各种状态
+					//return_code和result_code都为success的时候
+					if("SUCCESS".equals(resultMap.get("return_code"))&&"SUCCESS".equals(resultMap.get("result_code"))){
+						String picPath = StringUtil.getRandomString(4);
+						String str = String.valueOf(new Date().getTime());
+						String path=req.getSession().getServletContext().getRealPath("upload/erWeiMa")+str+picPath;
+						//生成二维码
+						QRCodeUtil.QRCode(resultMap.get("code_url"), 300, 300, "png",path );
+						resp.getWriter().write(path);
+
+					}else{
+						resp.getWriter().write(resultMap.get("return_msg"));
+						if("NOAUTH".equals(resultMap.get("err_code"))){
+							req.setAttribute("out_trade_no", out_trade_no);
+							req.getRequestDispatcher("/closeOrderServlet").forward(req, resp);
+							resp.getWriter().write("{\"msg\":\"商户商户无此接口权限，订单已关闭\",\"result\":[{}],\"code\":\"\"}");
+						}
+						if("NOTENOUGH".equals(resultMap.get("err_code"))){
+							req.setAttribute("out_trade_no", out_trade_no);
+							req.getRequestDispatcher("/closeOrderServlet").forward(req, resp);
+							resp.getWriter().write("{\"msg\":\"余额不足，订单已关闭\",\"result\":[{}],\"code\":\"\"}");
+						}
+						if("ORDERPAID".equals(resultMap.get("err_code"))){
+							resp.getWriter().write("{\"msg\":\"订单已支付\",\"result\":[{}],\"code\":\"\"}");
+						}
+						if("ORDERCLOSED".equals(resultMap.get("err_code"))){
+							resp.getWriter().write("{\"msg\":\"订单已关闭\",\"result\":[{}],\"code\":\"\"}");
+						}
+						if("SYSTEMERROR".equals(resultMap.get("err_code"))){
+							for (int i = 0; i < 1; i++) {
+								doPost(req,resp);
+								resp.getWriter().write("{\"msg\":\"系统错误\",\"result\":[{}],\"code\":\"\"}");
+							}
+						}
+						if("APPID_NOT_EXIST".equals(resultMap.get("err_code"))||"MCHID_NOT_EXIST".equals(resultMap.get("err_code"))
+								||"LACK_PARAMS".equals(resultMap.get("err_code"))){
+							req.setAttribute("out_trade_no", out_trade_no);
+							req.getRequestDispatcher("/closeOrderServlet").forward(req, resp);
+							resp.getWriter().write("{\"msg\":\"缺少参数，订单已关闭\",\"result\":[{}],\"code\":\"\"}");
+						}
+						if("OUT_TRADE_NO_USED".equals(resultMap.get("err_code"))){
+							resp.getWriter().write("{\"msg\":\"商户订单号重复\",\"result\":[{}],\"code\":\"\"}");
+						}
+						if("XML_FORMAT_ERROR".equals(resultMap.get("err_code"))){
+							req.setAttribute("out_trade_no", out_trade_no);
+							req.getRequestDispatcher("/closeOrderServlet").forward(req, resp);
+							resp.getWriter().write("{\"msg\":\"XML格式错误，订单已关闭\",\"result\":[{}],\"code\":\"\"}");
+						}
+						if("REQUIRE_POST_METHOD".equals(resultMap.get("err_code"))){
+							req.setAttribute("out_trade_no", out_trade_no);
+							req.getRequestDispatcher("/closeOrderServlet").forward(req, resp);
+							resp.getWriter().write("{\"msg\":\"请使用post方法，订单已关闭\",\"result\":[{}],\"code\":\"\"}");
+						}
+						if("POST_DATA_EMPTY".equals(resultMap.get("err_code"))){
+							req.setAttribute("out_trade_no", out_trade_no);
+							req.getRequestDispatcher("/closeOrderServlet").forward(req, resp);
+							resp.getWriter().write("{\"msg\":\"post数据为空，订单已关闭\",\"result\":[{}],\"code\":\"\"}");
+						}
+						if("NOT_UTF8".equals(resultMap.get("err_code"))){
+							req.setAttribute("out_trade_no", out_trade_no);
+							req.getRequestDispatcher("/closeOrderServlet").forward(req, resp);
+							resp.getWriter().write("{\"msg\":\"编码格式错误，订单已关闭\",\"result\":[{}],\"code\":\"\"}");
+						}
+						//签名错误
+						if("SIGNERROR".equals(resultMap.get("err_code"))){
+							req.setAttribute("out_trade_no", out_trade_no);
+							req.getRequestDispatcher("/closeOrderServlet").forward(req, resp);
+							resp.getWriter().write("{\"msg\":\"支付失败，订单已关闭\",\"result\":[{}],\"code\":\"\"}");
+						}
+					}
+				}else{
+					res = "操作失败";
+					resp.getWriter().write(res);
+				}
+			} catch (Exception e) {
+				e.printStackTrace();
+				res = "系统异常";
+				resp.getWriter().write(res);
+			} finally {
+				if(response != null){
+					response.close();
+				}
+				if(client != null){
+					client.close();
+				}
+			}
+		}else{
+			resp.getWriter().write("{\"msg\":\"订单已支付\",\"result\":[{}],\"code\":\"\"}");
+		}
+	}
+}

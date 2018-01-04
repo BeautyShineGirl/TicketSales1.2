@@ -1,0 +1,57 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="hotProduct">
+	<!-- //查询抢购产品的所有信息返回给前台	2017-12-25 -->
+	<select id="getProduct" resultType="cn.nvinfo.domain.HotProduct">
+		select * from hotProduct
+		order by startTime
+  	</select>
+  	
+  	<!-- //通过id查询抢购产品的详细	2017-12-25	杨立 -->
+  	<select id="getHotProductById" resultType="cn.nvinfo.domain.HotProduct">
+  		select * from hotProduct where id=#{id}
+  	</select>
+  	
+  	<!-- //根据random_no查出原本的oldUrl	yangli	2017-12-25-->
+  	<select id="getOldUrl" resultType="java.lang.String">
+  		select url from hotProduct where random_no=#{random_no}
+  	</select>
+  	<!-- //先查询数据库中是否存在这个随机数，若存在，则不进行添加随机数-->
+  	<select id="getRandom_no" resultType="java.lang.String">
+  		select random_no from hotProduct where random_no=#{random_no}
+  	</select>
+  	
+  	<!-- 添加产品的随机数-->
+  	<insert id="addRandom_no" parameterType="cn.nvinfo.domain.HotProduct" useGeneratedKeys="true">
+  		insert into hotProduct (random_no) values(#{random_no})
+  	</insert>
+  	<!-- //修改图片路径	2017-12-25	杨立 -->
+  	<update id="updateUrl" parameterType="cn.nvinfo.domain.HotProduct" useGeneratedKeys="true">
+  		update hotProduct set url=#{newUrl} where random_no=#{random_no}
+  	</update>
+  	
+  	<!-- 获得总记录数 -->
+  	<select id="getAllCount" resultType="int">
+  		select count(*) from hotProduct	
+  	</select>
+  	
+  	<!-- 获得当前页的数据 -->
+  	<select id="getPageDate" resultType="cn.nvinfo.domain.HotProduct">
+  		select * from hotProduct order by id asc limit #{pageIndex},#{pageSize}	
+  	</select>
+  	
+  	<!-- //添加抢购产品，除路径外的其他信息	杨立	2017-12-26 -->
+  	<update id="add" parameterType="cn.nvinfo.domain.HotProduct" useGeneratedKeys="true">
+  		update hotProduct set name=#{name},viewName=#{viewName},state=#{state},marketPrice=#{marketPrice},salePrice=#{salePrice},saleTime=#{saleTime},
+  		startTime=#{startTime},endTime=#{endTime},num=#{num},notice=#{notice},costInside=#{costInside},costOutside=#{costOutside},remark=#{remark},
+  		introduce=#{introduce},method=#{method}
+  		 where random_no=#{random_no}
+  	</update>
+  	
+  	<!-- //删除抢购产品	杨立	2017-12-27 -->
+  	<delete id="delete" parameterType="cn.nvinfo.domain.HotProduct">
+  		delete from hotProduct where id=#{id}
+  	</delete>
+</mapper>

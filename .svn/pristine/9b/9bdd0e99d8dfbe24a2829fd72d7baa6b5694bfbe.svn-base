@@ -1,0 +1,19 @@
+package cn.nvinfo.service;
+
+import cn.nvinfo.domain.Custom;
+import cn.nvinfo.domain.Order;
+
+
+
+public interface UserService {
+
+	/*
+	 * 登陆  杨立  2017-10-16
+	 */
+	Custom getUser(String loginName, String password);
+	/*
+	 * 添加订单到数据库	YANGLI 2017-10-18
+	 */
+	int addOrder(Order order);
+
+}	

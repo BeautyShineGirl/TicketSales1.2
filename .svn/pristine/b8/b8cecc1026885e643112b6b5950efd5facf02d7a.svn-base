@@ -1,0 +1,291 @@
+package cn.nvinfo.domain;
+
+import java.util.List;
+
+/**
+ * 产品实体  
+ * @author 杨立   2017-09-18
+ *
+ */
+public class Product {
+
+	private int id;//产品编号
+	private String name;//票名 
+	
+	private int viewId;//景区编号
+	private String viewName;
+	private int supplierId;//供应商
+	private String supplierName;
+	private double endPrice; //结算价
+	private double marketPrice;//门市价
+	private String isSale;//是否销售  数据字典
+	private String type;//门票类型    单门票，套票，亲子票  数据字典
+	private String ticketType;// 票型   数据字典   平价票，普通票，活动票
+	private String startTime;//开始时间 	
+	private String endTime;//结束时间
+	private int dailySale;//当天可售数量
+	private int num;//总数量
+	private String orderTime;//提前预订时间
+	private String isCancel;//是否可退    否，是  数据字典
+	private String notice;//入园须知
+	private String costInside;//费用包含
+	private String costOutside;//费用不包含
+	private String remark;//备注
+	private String userType;//使用者类别开关   0禁用 ，1不禁用
+	
+	private String priorityType;//显示优先级分类  自由类，活动类。。对应优先级为0,1.。
+	private int priorityId;//优先级
+	private String customName;//分销商显示列表
+	private List<String> custom;
+	private String customPro;//网数据库中存储的字段
+	private String method;//入园方式
+	private String customId;//分销商字符串
+
+	public Product() {
+		super();
+	}
+
+	public int getId() {
+		return id;
+	}
+
+	public void setId(int id) {
+		this.id = id;
+	}
+
+	public String getName() {
+		return name;
+	}
+
+	public void setName(String name) {
+		this.name = name;
+	}
+
+
+	public double getEndPrice() {
+		return endPrice;
+	}
+
+	public void setEndPrice(double endPrice) {
+		this.endPrice = endPrice;
+	}
+
+	public double getMarketPrice() {
+		return marketPrice;
+	}
+
+	public void setMarketPrice(double marketPrice) {
+		this.marketPrice = marketPrice;
+	}
+
+	public String getIsSale() {
+		return isSale;
+	}
+
+	public void setIsSale(String isSale) {
+		this.isSale = isSale;
+	}
+
+	public String getType() {
+		return type;
+	}
+
+	public void setType(String type) {
+		this.type = type;
+	}
+
+	public String getTicketType() {
+		return ticketType;
+	}
+
+	public void setTicketType(String ticketType) {
+		this.ticketType = ticketType;
+	}
+
+	public String getStartTime() {
+		return startTime;
+	}
+
+	public void setStartTime(String startTime) {
+		this.startTime = startTime;
+	}
+
+	public String getEndTime() {
+		return endTime;
+	}
+
+	public void setEndTime(String endTime) {
+		this.endTime = endTime;
+	}
+
+	public int getDailySale() {
+		return dailySale;
+	}
+
+	public void setDailySale(int dailySale) {
+		this.dailySale = dailySale;
+	}
+
+	public int getNum() {
+		return num;
+	}
+
+	public void setNum(int num) {
+		this.num = num;
+	}
+
+	public String getOrderTime() {
+		return orderTime;
+	}
+
+	public void setOrderTime(String orderTime) {
+		this.orderTime = orderTime;
+	}
+
+	public String getIsCancel() {
+		return isCancel;
+	}
+
+	public void setIsCancel(String isCancel) {
+		this.isCancel = isCancel;
+	}
+
+	public String getNotice() {
+		return notice;
+	}
+
+	public void setNotice(String notice) {
+		this.notice = notice;
+	}
+
+	public String getCostInside() {
+		return costInside;
+	}
+
+	public void setCostInside(String costInside) {
+		this.costInside = costInside;
+	}
+
+	public String getCostOutside() {
+		return costOutside;
+	}
+
+	public void setCostOutside(String costOutside) {
+		this.costOutside = costOutside;
+	}
+
+	public String getRemark() {
+		return remark;
+	}
+
+	public void setRemark(String remark) {
+		this.remark = remark;
+	}
+
+
+	public String getUserType() {
+		return userType;
+	}
+
+	public void setUserType(String userType) {
+		this.userType = userType;
+	}
+
+	public String getPriorityType() {
+		return priorityType;
+	}
+
+	public void setPriorityType(String priorityType) {
+		this.priorityType = priorityType;
+	}
+
+	
+
+	public String getMethod() {
+		return method;
+	}
+
+	public void setMethod(String method) {
+		this.method = method;
+	}
+
+	public int getViewId() {
+		return viewId;
+	}
+
+	public void setViewId(int viewId) {
+		this.viewId = viewId;
+	}
+
+	public int getSupplierId() {
+		return supplierId;
+	}
+
+	public void setSupplierId(int supplierId) {
+		this.supplierId = supplierId;
+	}
+
+	public int getPriorityId() {
+		return priorityId;
+	}
+
+	public void setPriorityId(int priorityId) {
+		this.priorityId = priorityId;
+	}
+	
+
+
+	public String getCustomName() {
+		return customName;
+	}
+
+	public void setCustomName(String customName) {
+		this.customName = customName;
+	}
+
+	public List<String> getCustom() {
+		return custom;
+	}
+
+	public void setCustom(List<String> custom) {
+		this.custom = custom;
+	}
+
+	public String getViewName() {
+		return viewName;
+	}
+
+	public void setViewName(String viewName) {
+		this.viewName = viewName;
+	}
+
+	public String getSupplierName() {
+		return supplierName;
+	}
+
+	public void setSupplierName(String supplierName) {
+		this.supplierName = supplierName;
+	}
+
+	public String getCustomPro() {
+		return customPro;
+	}
+
+	public void setCustomPro(String customPro) {
+		this.customPro = customPro;
+	}
+
+	public String getCustomId() {
+		return customId;
+	}
+
+	public void setCustomId(String customId) {
+		this.customId = customId;
+	}
+
+
+
+	
+	
+	
+}

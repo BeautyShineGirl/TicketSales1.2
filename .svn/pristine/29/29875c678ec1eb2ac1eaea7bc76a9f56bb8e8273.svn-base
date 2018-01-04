@@ -1,0 +1,135 @@
+package cn.nvinfo.controller;
+
+
+
+
+import java.io.IOException;
+
+import javax.annotation.Resource;
+import javax.servlet.ServletException;
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
+import javax.servlet.http.HttpSession;
+
+import org.apache.log4j.Logger;
+import org.springframework.context.annotation.Scope;
+import org.springframework.stereotype.Controller;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.ResponseBody;
+
+
+
+
+import cn.nvinfo.domain.Custom;
+import cn.nvinfo.domain.Order;
+import cn.nvinfo.service.UserService;
+
+import cn.nvinfo.utils.CheckUtil;
+import cn.nvinfo.utils.Result;
+import cn.nvinfo.wxpay.servlet.RefundQueryServlet;
+/**
+ * 测试框架及返回json
+ * @author yangli
+ *
+ */
+@Controller
+@Scope("prototype")
+@RequestMapping("user")
+public class UserAction{
+	private static Logger log=Logger.getLogger(UserAction.class);
+	@Resource
+	private UserService userService;
+	
+	/**
+	 * 登陆  杨立  2017-10-16
+	 * @param id
+	 * @return
+	 */
+	@RequestMapping("/login.action")
+	public @ResponseBody Object login(String loginName,String password,HttpSession httpSession){
+		//验证参数
+		if(!"".equals(CheckUtil.checkArgsNotNull(loginName,password))){
+			log.info(new Result(0,"参数错误"));
+			return new Result(0,"参数错误");
+		}
+		log.info("登陆申请："+","+loginName+","+password);
+		//查询用户是否存在
+		Custom user=userService.getUser(loginName,password);
+		httpSession.setAttribute("user", user);
+		if(user!=null){
+			log.info(new Result(1,"登陆成功",user));
+			return new Result(1,"登陆成功",user);
+		}else{
+			log.info(new Result(0,"该用户不存在，登录失败"));
+			return new Result(0,"该用户不存在，登录失败");
+		}
+	}
+	/**
+	 * 保存订单  杨立  2017-10-18
+	 * @param id
+	 * @return
+	 */
+	@RequestMapping("/addOrder.action")
+	public @ResponseBody Object addOrder(Order order,HttpServletRequest requset,HttpServletResponse response){
+		String orderId=order.getOrderId();//订单号
+		Integer productId=order.getProductId();//产品编号
+		String productName=order.getProductName();//产品名称
+		Integer customId=order.getCustomId();//OTA编号
+		String custName=order.getCustName();//OTA名称
+		String custOrder=order.getCustOrder();//OTA订单号
+		Integer supplierId=order.getSupplierId();//供应商编号
+		String supplierOrder=order.getSupplierOrder();//供应商订单号
+		Integer viewId=order.getViewId();//景区编号
+		String ispay=order.getIspay();//支付方式
+		order.setOrderState(1);//订单状态  未支付
+		String payId=order.getPayId();//支付单号
+		Integer orderNumber=order.getOrderNumber();//预订数量
+		Double unitPrice=order.getUnitPrice();//单价
+		Double price=order.getPrice();//金额
+		String createDate=order.getCreateDate();//预定日期
+		String useDate=order.getUseDate();//使用日期
+		String orderCode=order.getOrderCode();//验证码列表
+		String userPhone=order.getUserPhone();//用户手机
+		String userName=order.getUserName();//用户姓名
+		String idCard=order.getIdCard();//用户身份证号
+		String remark=order.getRemark();//备注
+		//验证参数
+		if(!"".equals(CheckUtil.checkArgsNotNull(orderId,productId,productName,customId,custName,custOrder,supplierId,
+				supplierOrder,viewId,ispay,payId,orderNumber,unitPrice,price,createDate,useDate,orderCode,
+				userPhone,userName,idCard))){
+			log.info(new Result(0,"参数错误"));
+			return new Result(0,"参数错误");
+		}
+		log.info("登陆申请："+","+orderId+","+productId+","+productName+","+customId+","+custName+","+custOrder+","+supplierId+","+
+				supplierOrder+","+viewId+","+ispay+","+payId+","+orderNumber+","+unitPrice+","+price+","+createDate+","+
+				useDate+","+orderCode+","+userPhone+","+userName+","+idCard+","+remark);
+		//添加订单到数据库
+		int rows= userService.addOrder(order);
+		if(rows>0){
+			requset.setAttribute("out_trade_no",orderId );
+			requset.setAttribute("total_amount",price.toString() );
+			requset.setAttribute("subject",productName );
+			if("支付宝支付".equals(ispay)){
+				try {
+					requset.getRequestDispatcher("/alipayPayServlet").forward(requset, response);
+				} catch (Exception e) {
+					e.printStackTrace();
+				}
+			}
+			if("微信支付".equals(ispay)){
+				try {
+					requset.getRequestDispatcher("/payServlet").forward(requset, response);
+				} catch (Exception e) {
+					e.printStackTrace();
+				}
+			}
+			
+			log.info(new Result(1,"添加订单成功，正在返回二维码"));
+			return new Result(1,"添加订单成功，正在返回二维码");
+		} else {
+			log.info(new Result(0,"添加订单失败"));
+			return new Result(0,"添加订单失败");
+		}
+	}
+	
+}

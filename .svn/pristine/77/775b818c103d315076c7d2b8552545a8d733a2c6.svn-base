@@ -1,0 +1,65 @@
+package cn.nvinfo.dao.imp;
+
+
+import java.util.HashMap;
+import java.util.Map;
+
+import javax.annotation.Resource;
+
+import org.mybatis.spring.SqlSessionTemplate;
+import org.springframework.stereotype.Repository;
+
+import cn.nvinfo.dao.UserDao;
+import cn.nvinfo.domain.Custom;
+import cn.nvinfo.domain.Order;
+
+
+@Repository
+public class UserDaoImp implements UserDao{
+
+	@Resource
+	private SqlSessionTemplate template;
+
+	/*
+	 * 登陆  杨立  2017-10-16(non-Javadoc)
+	 * @see cn.nvinfo.dao.UserDao#getUser(java.lang.String, java.lang.String)
+	 */
+	public Custom getUser(String loginName, String password) {
+		Map<String,Object> map=new HashMap<String, Object>();
+		map.put("loginName", loginName);
+		map.put("password", password);
+		return template.selectOne("user.getUser",map);
+	}
+	/*
+	 * 获取订单	2017-10-18	杨立(non-Javadoc)
+	 * @see cn.nvinfo.dao.UserDao#getOrder(java.lang.String)
+	 */
+	public Order getOrder(String out_trade_no) {
+		return template.selectOne("user.getOrder",out_trade_no);
+	}
+	/*
+	 *获得订单的商品描述	yangli 	2017-10-18	  例如冰雪大世界成人票（产品名字加票型）
+	 * (non-Javadoc)
+	 * @see cn.nvinfo.dao.UserDao#getBody()
+	 */
+	public Object getBody(String out_trade_no) {
+		return template.selectOne("user.getBody",out_trade_no);
+	}
+	/*
+	 * 获得订单的总金额 	杨立	2017-10-18(non-Javadoc)
+	 * @see cn.nvinfo.dao.UserDao#getTotalFee(java.lang.String)
+	 */
+	public Object getTotalFee(String out_trade_no) {
+		return template.selectOne("user.getTotalFee",out_trade_no);
+	}
+	/*
+	 * 添加订单到数据库	YANGLI 2017-10-18(non-Javadoc)
+	 * @see cn.nvinfo.dao.UserDao#addOrder(cn.nvinfo.domain.Order)
+	 */
+	public int addOrder(Order order) {
+		return template.insert("user.addOrder", order);
+	}
+
+
+
+}

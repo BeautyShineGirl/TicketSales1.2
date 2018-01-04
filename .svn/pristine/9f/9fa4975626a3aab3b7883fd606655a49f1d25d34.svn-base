@@ -1,0 +1,44 @@
+package cn.nvinfo.service.imp;
+
+import java.util.List;
+
+import javax.annotation.Resource;
+
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import cn.nvinfo.dao.UserDao;
+import cn.nvinfo.domain.User;
+import cn.nvinfo.service.UserService;
+import cn.nvinfo.utils.Pager;
+
+
+@Service
+@Transactional
+public class UserServiceImp implements UserService {
+
+	@Resource
+	private UserDao testDao;
+	
+	public void saveTwoUser() {
+		
+		testDao.saveTwoUser(new User());
+		testDao.saveTwoUser(new User());
+	}
+
+	public Pager<User> getPager(Integer pageIndex, Integer pageSize) {
+		Pager<User> pager =new Pager<User>();
+		pager.setCurrPage(pageIndex);
+		pager.setPageSize(pageSize);
+		pager.setAllCount(testDao.getAllCount());
+		pager.setDatas(testDao.getPageDate(pageIndex,pageSize));
+		pager.setPageCount();
+		return pager;
+	}
+
+	public int edit(Integer id, String deptId, String name) {
+		int rows=testDao.edit(id,deptId,name);
+		return rows;
+	}
+
+}

@@ -1,0 +1,14 @@
+package cn.nvinfo.service;
+
+import cn.nvinfo.domain.Custom;
+
+public interface UserService {
+
+	/*
+	 * µÇÂ½  ÑîÁ¢  2017-10-16
+	 */
+	Custom getUser(String loginName, String password);
+
+	
+
+}

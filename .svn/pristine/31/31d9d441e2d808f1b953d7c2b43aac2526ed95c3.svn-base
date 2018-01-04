@@ -1,0 +1,49 @@
+package cn.nvinfo.dao.imp;
+
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+import javax.annotation.Resource;
+
+import org.mybatis.spring.SqlSessionTemplate;
+import org.springframework.stereotype.Repository;
+
+import cn.nvinfo.dao.UserDao;
+import cn.nvinfo.domain.User;
+
+
+@Repository
+public class UserDaoImp implements UserDao{
+
+	@Resource
+	private SqlSessionTemplate template;
+	
+	public void saveTwoUser(User user) {
+		template.insert("test.save",user);
+	}
+
+	public int getAllCount() {
+		int rows=template.selectOne("test.getAllCount");
+		return rows;
+	}
+
+	public List<User> getPageDate(Integer pageIndex, Integer pageSize) {
+		Map<String,Object> map=new HashMap<String, Object>();
+		map.put("pageIndex", (pageIndex-1)*pageSize);
+		map.put("pageSize", pageSize);
+		List<User> list = template.selectList("test.getPageDate", map);
+		return list;
+	}
+
+	
+	public int edit(Integer id, String deptId, String name) {
+		Map<String,Object> map=new HashMap<String, Object>();
+		map.put("id", id);
+		map.put("deptId", deptId);
+		map.put("name", name);
+		int rows = template.update("test.edit", map);
+		return rows;
+	}
+
+}

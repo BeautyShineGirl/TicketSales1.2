@@ -1,0 +1,35 @@
+package cn.nvinfo.utils;
+/*
+ * 测试分销商管理 的删除    URL	2017-09-28
+ */
+public class Test {
+	public static void test(String fileName,String url){
+		String[] arr=url.split(",");
+		String newUrl=null;
+		for (int i = 0; i < arr.length; i++) {
+			if(!arr[i].equals("upload/files/"+fileName)){
+				if(newUrl==null){
+					newUrl=arr[i];
+				}else{
+					newUrl=newUrl+",\n\t"+arr[i];
+				}
+			}
+		}
+		System.out.println(newUrl);
+	}
+	
+			public static void test1(String url){
+				// c:\a\b\1.txt，而有些只是单纯的文件名，如：1.txt  
+				// 处理获取到的上传文件的文件名的路径部分，只保留文件名部分  
+				String lastName = url.substring(url.lastIndexOf("\\") + 1);  
+				// 得到上传文件的扩展名  
+				String fileExtName = lastName.substring(lastName.lastIndexOf(".") + 1); 
+				System.out.println(fileExtName);
+			}
+	public static void main(String[] args) {
+		//String fileName="20170928111022分发平台.pptx";
+		String url="upload/files/20170928111022分发平台.pptx";
+		//test(fileName,url);
+		test1(url);
+	}
+}

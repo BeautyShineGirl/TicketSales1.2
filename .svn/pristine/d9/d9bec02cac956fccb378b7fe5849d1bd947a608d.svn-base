@@ -1,0 +1,25 @@
+package cn.nvinfo.service;
+
+import cn.nvinfo.domain.Custom;
+import cn.nvinfo.domain.Order;
+
+
+
+public interface UserService {
+
+	/*
+	 * 登陆  杨立  2017-10-16
+	 */
+	Custom getUser(String loginName, String password);
+	/*
+	 * 添加订单到数据库	YANGLI 2017-10-18
+	 */
+	int addOrder(Order order);
+	//修改订单状态为为1，支付成功，添加微信订单号到order表	杨立	2017-10-26
+	int updateOrder(Order order);
+	//在本地数据库中查询，若查询状态不是orderState为3，则发起向微信退款查询（refundQueryServlet）
+	int queryRefund(Integer id);
+	//向微信发出查询退款申请返回退款成功
+	void updateOrderState(Integer id);
+
+}	

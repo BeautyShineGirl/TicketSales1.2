@@ -1,0 +1,140 @@
+package cn.nvinfo.wxpay.servlet;
+
+import java.io.IOException;
+import java.text.SimpleDateFormat;
+import java.util.Date;
+import java.util.Map;
+
+import javax.servlet.ServletException;
+import javax.servlet.http.HttpServlet;
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
+
+import net.sf.json.JSONObject;
+
+import org.apache.http.client.methods.CloseableHttpResponse;
+import org.apache.http.client.methods.HttpPost;
+import org.apache.http.impl.client.CloseableHttpClient;
+import org.apache.http.impl.client.HttpClients;
+import org.apache.http.util.EntityUtils;
+import org.apache.log4j.Logger;
+import org.springframework.web.context.WebApplicationContext;
+import org.springframework.web.context.support.WebApplicationContextUtils;
+
+import cn.nvinfo.domain.Order;
+import cn.nvinfo.service.UserService;
+import cn.nvinfo.service.imp.UserServiceImp;
+import cn.nvinfo.utils.HttpUtil;
+import cn.nvinfo.utils.Result;
+import cn.nvinfo.utils.SMS;
+import cn.nvinfo.utils.StringUtil;
+import cn.nvinfo.utils.SwiftpassConfig;
+import cn.nvinfo.utils.XmlUtils;
+/**
+ * 支付结果通知
+ * @author 杨立	2017-10-24
+ *
+ */
+public class PayResult extends HttpServlet {
+	private static Logger log=Logger.getLogger(PayResult.class);
+	private static final long serialVersionUID = 1L;
+
+	@Override
+	protected void doGet(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
+		doPost(req, resp);
+	}
+
+	@Override
+	protected void doPost(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
+		req.setCharacterEncoding("utf-8");
+		resp.setCharacterEncoding("utf-8");
+		resp.setHeader("Content-type", "text/html;charset=UTF-8");
+		log.info("=====================================PayResult=====================================");
+		log.info("=====================================微信异步通知开始=====================================");
+		
+		//获取spring容器中的service
+		WebApplicationContext  ctx= WebApplicationContextUtils.getWebApplicationContext(this.getServletContext());
+		UserService userService = (UserService) ctx.getBean("userService",UserService.class);
+		try {
+			String receivePost = HttpUtil.receivePost(req);
+			log.info("微信支付结果通知（原始数据）："+receivePost);
+			if(receivePost != null){
+				Map<String,String> resultMap = XmlUtils.toMap(receivePost.getBytes(), "utf-8");
+				log.info("微信支付结果通知（map）："+resultMap);
+				String return_code = resultMap.get("return_code");
+				if("SUCCESS".equals(return_code)){
+					Order order = new Order();
+					order.setOrderState(0);//将订单表中的orderState改为0，证明，订单已支付成功
+					order.setTransaction_id(resultMap.get("transaction_id"));//保存微信订单号
+					order.setOrderId(resultMap.get("out_trade_no"));//商品订单号order表中的id
+					userService.updateOrder(order);//
+					//先从订单表中把该支付成功的订单查出来	2017-11-07
+					Order order2=userService.getOrderSuccess(resultMap.get("out_trade_no"));
+					/*
+					 * 判断该产品的供应商是否是第三方，若不是，则直接发送短信到用户手机；
+					 * 若是第三方产品，则向第三方下单
+					 */
+					int supplierId = order2.getSupplierId();
+					if(supplierId==1){
+						//然后将短信通知所需的字段放入短信通知的方法中发送短信2017-11-07
+						String userName = order2.getUserName();
+						String useDate = order2.getUseDate();
+						String productName = order2.getProductName();
+						Integer orderNumber = order2.getOrderNumber();
+						String num=orderNumber.toString();
+						String orderId = resultMap.get("out_trade_no");
+						String orderCode = order2.getOrderCode();
+						String viewName = order2.getViewName();
+						String userPhone = order2.getUserPhone();
+						SMS.sendSms(userName, useDate, productName,num,orderId, orderCode,viewName,userPhone);
+						log.info("自营产品"+orderId+"支付成功,并发送短信至客户");
+					}else{
+						//根据供应商id得到供应商的名字	yangli	2017-12-11
+						String supplierName=userService.getSupplierName(supplierId);
+						SimpleDateFormat df=new SimpleDateFormat("yy-MM-dd HH:mm:ss");
+						if(supplierId==2){
+							//向新浪潮下单，传入参数，新浪潮的供应商订单号，及供应商编号
+							req.setAttribute("orderId",order2.getSupplierOrder());//联系人证件类型
+							req.setAttribute("supplierId",supplierId);//联系人证件号码
+							req.getRequestDispatcher("/anotherPayServlet").forward(req, resp);
+							Integer status = Integer.parseInt((String)req.getAttribute("status"));
+							String code = (String) req.getAttribute("code");
+							if(status==0){
+								//把订单状态改成5 为用户下单支付成功，向第三方下单失败，原因是第三方返回的msg	2017-12-08	yangli
+								Order order1 = new Order();
+								order1.setOrderState(5);//将订单表中的orderState改为0，证明，订单已支付成功
+								order1.setTransaction_id("无");//保存微信订单号
+								order1.setOrderId(order2.getOrderId());//商品订单号order表中的id
+								order1.setReason((String) req.getAttribute("msg")+(String) req.getAttribute("error_state"));//支付失败的原因
+								userService.updateOrder(order1);//
+								//将供应商订单号告诉给运营的人，这个订单支付失败
+								//模板：supplierName的供应商订单号为supplierOrder的订单支付失败，请尽快处理
+								SMS.toYunYing(supplierName,df.format(new Date()),order2.getSupplierOrder(),(String) req.getAttribute("msg"),"15202468686");
+								SMS.toYunYing(supplierName,df.format(new Date()),order2.getSupplierOrder(),(String) req.getAttribute("msg"),"15202468686");
+								SMS.toYunYing(supplierName,df.format(new Date()),order2.getSupplierOrder(),(String) req.getAttribute("msg"),"15202468686");
+								log.info("新浪潮下单失败："+df.format(new Date())+order2.getSupplierOrder()+"支付失败，原因是："+(String) req.getAttribute("msg"));
+							}else{
+								//将第三方给客户返回的短信验证码保存到orderCode中	yangli 2017-12-11
+								Order order3 = new Order();
+								order3.setProductId(order2.getProductId());
+								order3.setSupplierOrderState(2);//向新浪潮下单成功
+								order3.setOrderCode(code);
+								userService.insertCode(order3);
+								log.info(supplierName+df.format(new Date())+order2.getSupplierOrder()+"支付成功，code="+code);
+							}
+						}
+					}
+					
+					log.info("请求支付微信服务器异步通知返回微信服务器的xml的数据："+"<xml><return_code><![CDATA[SUCCESS]]></return_code><return_msg><![CDATA[OK]]></return_msg></xml>");
+					resp.getOutputStream().print("<xml><return_code><![CDATA[SUCCESS]]></return_code><return_msg><![CDATA[OK]]></return_msg></xml>");
+				}else{
+					log.info("请求支付微信服务器异步通知返回微信服务器的xml的数据："+"<xml><return_code><![CDATA[SUCCESS]]></return_code><return_msg><![CDATA[FAIL]]></return_msg></xml>");
+					resp.getOutputStream().print("<xml><return_code><![CDATA[SUCCESS]]></return_code><return_msg><![CDATA[FAIL]]></return_msg></xml>");
+				}
+			}
+			log.info("=====================================微信异步通知结束=====================================");
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+	}
+}

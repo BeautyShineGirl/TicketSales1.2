@@ -1,0 +1,293 @@
+package cn.nvinfo.domain;
+
+import java.util.List;
+
+/**
+ * 订单实体
+ * @author 杨立  2017-09-18
+ *
+ */
+public class Order {
+
+	private int id;//编号
+	private String orderId;//订单号
+	private int productId;//产品编号
+	private String productName;//产品名称
+	private int customId;//OTA编号
+	private String custName;//OTA名称
+	private String custOrder;//OTA订单号
+	private int supplierId;//供应商编号
+	private String supplierOrder;//供应商订单号
+	private int viewId;//景区编号
+	private String ispay;//支付方式
+	private int orderState;//订单状态
+	private String payId;//支付单号
+	private int orderNumber;//预订数量
+	private double unitPrice;//单价
+	private double price;//金额
+	private String createDate;//预定日期
+	private String useDate;//使用日期
+	private String verDate;//核销日期	新加字段	2017-11-1
+	private String orderCode;//验证码列表
+	private String userPhone;//用户手机
+	private String userName;//用户姓名
+	private String idCard;//用户身份证号
+	private String remark;//备注
+	private String transaction_id;//微信订单号
+	private String viewName;//发送短信通知所需	2017-11-07
+	
+	private String reason;//主要记载支付失败的原因
+	
+	private String picture;//该产品所对应的景区图片
+	private List<Images> images;//分销商页面返回产品所对应的图片
+	private int userId;//下单的分销商id
+	
+	public Order() {
+		super();
+	}
+
+	public int getId() {
+		return id;
+	}
+
+	public void setId(int id) {
+		this.id = id;
+	}
+
+	public String getOrderId() {
+		return orderId;
+	}
+
+	public void setOrderId(String orderId) {
+		this.orderId = orderId;
+	}
+
+	public int getProductId() {
+		return productId;
+	}
+
+	public void setProductId(int productId) {
+		this.productId = productId;
+	}
+
+	public String getProductName() {
+		return productName;
+	}
+
+	public void setProductName(String productName) {
+		this.productName = productName;
+	}
+
+	public int getCustomId() {
+		return customId;
+	}
+
+	public void setCustomId(int customId) {
+		this.customId = customId;
+	}
+
+	public String getCustName() {
+		return custName;
+	}
+
+	public void setCustName(String custName) {
+		this.custName = custName;
+	}
+
+	public String getCustOrder() {
+		return custOrder;
+	}
+
+	public void setCustOrder(String custOrder) {
+		this.custOrder = custOrder;
+	}
+
+	public int getSupplierId() {
+		return supplierId;
+	}
+
+	public void setSupplierId(int supplierId) {
+		this.supplierId = supplierId;
+	}
+
+	public String getSupplierOrder() {
+		return supplierOrder;
+	}
+
+	public void setSupplierOrder(String supplierOrder) {
+		this.supplierOrder = supplierOrder;
+	}
+
+
+
+	public int getViewId() {
+		return viewId;
+	}
+
+	public void setViewId(int viewId) {
+		this.viewId = viewId;
+	}
+
+	public String getIspay() {
+		return ispay;
+	}
+
+	public void setIspay(String ispay) {
+		this.ispay = ispay;
+	}
+
+
+	public int getOrderState() {
+		return orderState;
+	}
+
+	public void setOrderState(int orderState) {
+		this.orderState = orderState;
+	}
+
+	public String getPayId() {
+		return payId;
+	}
+
+	public void setPayId(String payId) {
+		this.payId = payId;
+	}
+
+	public int getOrderNumber() {
+		return orderNumber;
+	}
+
+	public void setOrderNumber(int orderNumber) {
+		this.orderNumber = orderNumber;
+	}
+
+	public double getUnitPrice() {
+		return unitPrice;
+	}
+
+	public void setUnitPrice(double unitPrice) {
+		this.unitPrice = unitPrice;
+	}
+
+	public double getPrice() {
+		return price;
+	}
+
+	public void setPrice(double price) {
+		this.price = price;
+	}
+
+	public String getCreateDate() {
+		return createDate;
+	}
+
+	public void setCreateDate(String createDate) {
+		this.createDate = createDate;
+	}
+
+	public String getUseDate() {
+		return useDate;
+	}
+
+	public void setUseDate(String useDate) {
+		this.useDate = useDate;
+	}
+
+	public String getOrderCode() {
+		return orderCode;
+	}
+
+	public void setOrderCode(String orderCode) {
+		this.orderCode = orderCode;
+	}
+
+	public String getUserPhone() {
+		return userPhone;
+	}
+
+	public void setUserPhone(String userPhone) {
+		this.userPhone = userPhone;
+	}
+
+	public String getUserName() {
+		return userName;
+	}
+
+	public void setUserName(String userName) {
+		this.userName = userName;
+	}
+
+	public String getIdCard() {
+		return idCard;
+	}
+
+	public void setIdCard(String idCard) {
+		this.idCard = idCard;
+	}
+
+	public String getRemark() {
+		return remark;
+	}
+
+	public void setRemark(String remark) {
+		this.remark = remark;
+	}
+
+	public String getTransaction_id() {
+		return transaction_id;
+	}
+
+	public void setTransaction_id(String transaction_id) {
+		this.transaction_id = transaction_id;
+	}
+
+	public String getVerDate() {
+		return verDate;
+	}
+
+	public void setVerDate(String verDate) {
+		this.verDate = verDate;
+	}
+
+	public String getViewName() {
+		return viewName;
+	}
+
+	public void setViewName(String viewName) {
+		this.viewName = viewName;
+	}
+
+	public String getReason() {
+		return reason;
+	}
+
+	public void setReason(String reason) {
+		this.reason = reason;
+	}
+
+	public String getPicture() {
+		return picture;
+	}
+
+	public void setPicture(String picture) {
+		this.picture = picture;
+	}
+
+	public List<Images> getImages() {
+		return images;
+	}
+
+	public void setImages(List<Images> images) {
+		this.images = images;
+	}
+
+	public int getUserId() {
+		return userId;
+	}
+
+	public void setUserId(int userId) {
+		this.userId = userId;
+	}
+	
+	
+}

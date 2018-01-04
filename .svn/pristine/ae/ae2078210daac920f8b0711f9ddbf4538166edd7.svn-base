@@ -1,0 +1,23 @@
+package cn.nvinfo.domain;
+/**
+ * 景区管理   返回业务员时的实体      
+ * @author 杨立     2017-09-20
+ *
+ */
+public class User {
+	private int id;
+	private String name;
+	public int getId() {
+		return id;
+	}
+	public void setId(int id) {
+		this.id = id;
+	}
+	public String getName() {
+		return name;
+	}
+	public void setName(String name) {
+		this.name = name;
+	}
+	
+}

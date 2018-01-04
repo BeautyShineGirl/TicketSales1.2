@@ -1,0 +1,215 @@
+package cn.nvinfo.dao.imp;
+
+
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+import javax.annotation.Resource;
+import javax.swing.text.View;
+
+import org.mybatis.spring.SqlSessionTemplate;
+import org.springframework.stereotype.Repository;
+
+import cn.nvinfo.dao.UserDao;
+import cn.nvinfo.domain.Custom;
+import cn.nvinfo.domain.Order;
+import cn.nvinfo.domain.Product;
+import cn.nvinfo.domain.ViewMessage;
+
+
+@Repository
+public class UserDaoImp implements UserDao{
+
+	@Resource
+	private SqlSessionTemplate template;
+
+	/*
+	 * 登陆  杨立  2017-10-16(non-Javadoc)
+	 * @see cn.nvinfo.dao.UserDao#getUser(java.lang.String, java.lang.String)
+	 */
+	public Custom getUser(String loginName, String password) {
+		Map<String,Object> map=new HashMap<String, Object>();
+		map.put("loginName", loginName);
+		map.put("password", password);
+		return template.selectOne("user.getUser",map);
+	}
+	/*
+	 * 获取订单	2017-10-18	杨立(non-Javadoc)
+	 * @see cn.nvinfo.dao.UserDao#getOrder(java.lang.String)
+	 */
+	public Order getOrder(String out_trade_no) {
+		return template.selectOne("user.getOrder",out_trade_no);
+	}
+	/*
+	 *获得订单的商品描述	yangli 	2017-10-18	  例如冰雪大世界成人票（产品名字加票型）
+	 * (non-Javadoc)
+	 * @see cn.nvinfo.dao.UserDao#getBody()
+	 */
+	public Object getBody(String out_trade_no) {
+		return template.selectOne("user.getBody",out_trade_no);
+	}
+	/*
+	 * 获得订单的总金额 	杨立	2017-10-18(non-Javadoc)
+	 * @see cn.nvinfo.dao.UserDao#getTotalFee(java.lang.String)
+	 */
+	public Object getTotalFee(String out_trade_no) {
+		return template.selectOne("user.getTotalFee",out_trade_no);
+	}
+	/*
+	 * 添加订单到数据库	YANGLI 2017-10-18(non-Javadoc)
+	 * @see cn.nvinfo.dao.UserDao#addOrder(cn.nvinfo.domain.Order)
+	 */
+	public int addOrder(Order order) {
+		return template.insert("user.addOrder", order);
+	}
+	/*
+	 * 修改订单状态为为0，支付成功，添加微信订单号到order表	杨立	2017-10-26(non-Javadoc)
+	 * @see cn.nvinfo.dao.UserDao#updateOrder(cn.nvinfo.domain.Order)
+	 */
+	public int updateOrder(Order order) {
+		return template.update("user.updateOrder", order);
+	}
+	/*
+	 * 在本地数据库中查询，若查询状态不是orderState为3，则发起向微信退款查询（refundQueryServlet） (non-Javadoc)
+	 * @see cn.nvinfo.dao.UserDao#queryRefund(java.lang.Integer)
+	 */
+	public int queryRefund(Integer id) {
+		return template.selectOne("user.queryRefund", id);
+	}
+	/*
+	 * 向微信发出查询退款申请返回退款成功，	yangli 	2017-10-26(non-Javadoc)
+	 * @see cn.nvinfo.dao.UserDao#updateOrderState(java.lang.Integer)
+	 */
+	public void updateOrderState(String id) {
+		template.update("user.updateOrderState", id);
+	}
+	/*
+	 * 查询提交的订单 是否已支付，如未支付orderState=1，则向微信发出支付请求	杨立	2017-10-26(non-Javadoc)
+	 * @see cn.nvinfo.dao.UserDao#selectOrderState(java.lang.Integer)
+	 */
+	public int selectOrderState(Integer id) {
+		return template.selectOne("user.selectOrderState",id);
+	}
+	/*
+	 * (non-Javadoc)
+	 * @see cn.nvinfo.dao.UserDao#editState(java.lang.Integer)
+	 */
+	public void editState(String id) {
+		template.update("user.editState", id);
+	}
+	/*
+	 * 轮播图	返回优先级0到4的产品及每个产品所对应的景区照片所对应的集合(non-Javadoc)
+	 * @see cn.nvinfo.dao.UserDao#getProduct()
+	 */
+	public List<Product> getProduct() {
+		return template.selectList("user.getProduct");
+	}
+	/*
+	 * 优先级最高的产品	优先级为5	杨立	2017-11-1(non-Javadoc)
+	 * @see cn.nvinfo.dao.UserDao#getExpeciallyProduct()
+	 */
+	public List<Product> getExpeciallyProduct() {
+		return template.selectList("user.getExpeciallyProduct");
+	}
+	/*
+	 *景点游	优先级为6的景区 按优先级排列   从打到小的顺序	杨立	2017-11-1(non-Javadoc)
+	 * @see cn.nvinfo.dao.UserDao#getMoreProduct()
+	 */
+	public List<Product> getViewTravalPro() {
+		return template.selectList("user.getViewTravalPro");
+	}
+	/*
+	 *  sort为0的景区	杨立	2017-11-1(non-Javadoc)
+	 * @see cn.nvinfo.dao.UserDao#getScopeView()
+	public ViewMessage getScopeView() {
+		return template.selectOne("user.getScopeView");
+	}
+	 */
+	/*
+	 * 周边游	优先级为7的景区  且不是西安的景区的产品	杨立	2017-11-1(non-Javadoc)
+	 * @see cn.nvinfo.dao.UserDao#getRimTravalPro()
+	 */
+	public List<Product> getRimTravalPro() {
+		return template.selectList("user.getRimTravalPro");
+	}
+	/*
+	 * 国内游	优先级为8的景区  	杨立	2017-11-1(non-Javadoc)
+	 * @see cn.nvinfo.dao.UserDao#getNationalTravalPro()
+	 */
+	public List<Product> getNationalTravalPro() {
+		return template.selectList("user.getNationalTravalPro");
+	}
+	/*
+	 * 点击更多时出现所有产品	按优先级顺序排列  	杨立	2017-11-1(non-Javadoc)
+	 * @see cn.nvinfo.dao.UserDao#getMore()
+	 */
+	public List<Product> getExpeciallyMore() {
+		return template.selectList("user.getExpeciallyMore");
+	}
+	/*
+	 * 根据id返回产品详情  杨立  2017-09-25(non-Javadoc)
+	 * @see cn.nvinfo.dao.UserDao#getById()
+	 */
+	public Product getById(Integer id) {
+		return template.selectOne("user.getById",id);
+	}
+	/*
+	 * 分销商页面搜索框  杨立  2017-11-3(non-Javadoc)
+	 * @see cn.nvinfo.dao.UserDao#getKeyWordProduct(java.lang.String)
+	 */
+	public List<Product> getKeyWordProduct(String keyWord) {
+		return template.selectList("user.getKeyWordProduct",keyWord);
+	}
+	/*
+	 * 先从订单表中把该支付成功的订单查出来	2017-11-07(non-Javadoc)
+	 * @see cn.nvinfo.dao.UserDao#getOrderSuccess(java.lang.String)
+	 */
+	public Order getOrderSuccess(String outTradeNo) {
+		return template.selectOne("user.getOrderSuccess",outTradeNo);
+	}
+	/*
+	 * 景点游点击更多  	优先级为6  	杨立	2017-11-07(non-Javadoc)
+	 * @see cn.nvinfo.dao.UserDao#viewTravalMore()
+	 */
+	public List<Product> viewTravalMore() {
+		return template.selectList("user.viewTravalMore");
+	}
+	/*
+	 * 周边游点击更多 	优先级为7  	杨立	2017-11-07(non-Javadoc)
+	 * @see cn.nvinfo.dao.UserDao#getRimTraval()
+	 */
+	public List<Product> getRimTraval() {
+		return template.selectList("user.getRimTraval");
+	}
+	/*
+	 * 国内游点击更多   优先级为8	杨立	2017-11-07(non-Javadoc)
+	 * @see cn.nvinfo.dao.UserDao#getNationalTravalMore()
+	 */
+	public List<Product> getNationalTravalMore() {
+		return template.selectList("user.getNationalTravalMore");
+	}
+	//获得sort为1的景区的集合	杨立	2017-11-08
+	public List<ViewMessage> getExpeciallyView() {
+		return template.selectList("user.getExpeciallyView");
+	}
+	//获得sort为2的景区的集合	杨立	2017-11-08
+	public List<ViewMessage> getViewTravalView() {
+		return template.selectList("user.getViewTravalView");
+	}
+	//周边游景区信息	获得sort为3的景区的集合	杨立	2017-11-08
+	public List<ViewMessage> getRimTravalView() {
+		return template.selectList("user.getRimTravalView");
+	}
+	//国内游景区信息	获得sort为4的景区的集合	杨立	2017-11-08
+	public List<ViewMessage> getNationalTravalView() {
+		return template.selectList("user.getNationalTravalView");
+	}
+	//查询根据景区id返回产品List详情	yangli	2017-11-08
+	public List<Product> getByIdList(Integer id) {
+		return template.selectList("user.getByIdList",id);
+	}
+	
+	
+
+}

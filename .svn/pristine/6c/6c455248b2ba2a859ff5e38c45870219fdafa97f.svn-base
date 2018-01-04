@@ -1,0 +1,133 @@
+package cn.nvinfo.wxpay.servlet;
+
+import java.io.IOException;
+import java.util.Date;
+import java.util.Map;
+import java.util.SortedMap;
+
+import javax.servlet.ServletException;
+import javax.servlet.http.HttpServlet;
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
+
+import org.apache.http.client.methods.CloseableHttpResponse;
+import org.apache.http.client.methods.HttpPost;
+import org.apache.http.entity.StringEntity;
+import org.apache.http.impl.client.CloseableHttpClient;
+import org.apache.http.impl.client.HttpClients;
+import org.apache.http.util.EntityUtils;
+
+import cn.nvinfo.service.UserService;
+import cn.nvinfo.service.imp.UserServiceImp;
+import cn.nvinfo.utils.CheckUtil;
+import cn.nvinfo.utils.MD5;
+import cn.nvinfo.utils.SignUtils;
+import cn.nvinfo.utils.SwiftpassConfig;
+import cn.nvinfo.utils.XmlUtils;
+/**
+ * 查询订单
+ * @author admin
+ *
+ */
+public class QueryServlet extends HttpServlet {
+	private static final long serialVersionUID = 1L;
+
+	@Override
+	protected void doGet(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
+		doPost(req, resp);
+	}
+
+	@Override
+	protected void doPost(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
+		req.setCharacterEncoding("utf-8");
+		resp.setCharacterEncoding("utf-8");
+		String out_trade_no=req.getParameter("out_trade_no");
+		Integer id=Integer.parseInt(req.getParameter("id"));//获得订单的id 用于在本地数据库查询定的的状态
+
+		//验证参数
+		if(!"".equals(CheckUtil.checkArgsNotNull(id,out_trade_no))){
+			resp.getWriter().write("{\"msg\":\"参数错误\",\"result\":[{}],\"code\":\"\"}");
+		}
+		//在本地数据库中查询，若查询状态不是orderState为0，请求queryServlet查询订单状态
+		UserService userService=new UserServiceImp();
+		int state=userService.selectOrderState(id);
+		if(state!=0){
+			SortedMap<String,String> map = XmlUtils.getParameterMap(req);
+			map.put("appid", "wxaea446e27328b87a");//公众账号id
+			map.put("mch_id", SwiftpassConfig.mch_id);//商户号
+			map.put("out_trade_no", out_trade_no);//商户订单号
+			map.put("nonce_str", String.valueOf(new Date().getTime()));//随即字符串
+			Map<String,String> params = SignUtils.paraFilter(map);
+			StringBuilder buf = new StringBuilder((params.size() +1) * 10);
+			SignUtils.buildPayParams(buf,params,false);
+			String preStr = buf.toString();
+			String sign = MD5.sign(preStr, "&key=" + SwiftpassConfig.key, "utf-8");
+			map.put("sign", sign);//签名
+			String reqUrl = "https://api.mch.weixin.qq.com/pay/orderquery";
+			CloseableHttpResponse response = null;
+			CloseableHttpClient client = null;
+			String res=null;
+			try {
+				HttpPost httpPost = new HttpPost(reqUrl);
+				StringEntity entityParams = new StringEntity(XmlUtils.parseXML(map),"utf-8");
+				httpPost.setEntity(entityParams);
+				//httpPost.setHeader("Content-Type", "text/xml;charset=ISO-8859-1");
+				client = HttpClients.createDefault();
+				response = client.execute(httpPost);
+				if(response != null && response.getEntity() != null){
+					Map<String,String> resultMap = XmlUtils.toMap(EntityUtils.toByteArray(response.getEntity()), "utf-8");
+					res = XmlUtils.toXml(resultMap);
+					if("FALL".equals(resultMap.get("return_code "))){
+						if("ORDERPAID".equals(resultMap.get("err_code"))){
+							resp.getWriter().write("{\"msg\":\"订单已支付\",\"result\":[{}],\"code\":\"\"}");
+						}
+						if("ORDERCLOSED".equals(resultMap.get("err_code"))){
+							resp.getWriter().write("{\"msg\":\"订单已关闭\",\"result\":[{}],\"code\":\"\"}");
+						}
+						//系统错误
+						if("SYSTEMERROR".equals(resultMap.get("err_code"))){
+							for (int i = 0; i < 1; i++) {
+								doPost(req,resp);
+								resp.getWriter().write("{\"msg\":\"系统错误\",\"result\":[{}],\"code\":\"\"}");
+							}
+						}
+						if("XML_FORMAT_ERROR".equals(resultMap.get("err_code"))){
+							resp.getWriter().write("{\"msg\":\"XML格式错误\",\"result\":[{}],\"code\":\"\"}");
+						}
+						if("REQUIRE_POST_METHOD".equals(resultMap.get("err_code"))){
+							resp.getWriter().write("{\"msg\":\"请使用post方法\",\"result\":[{}],\"code\":\"\"}");
+						}
+						//签名错误
+						if("SIGNERROR".equals(resultMap.get("err_code"))){
+							resp.getWriter().write("{\"msg\":\"签名错误\",\"result\":[{}],\"code\":\"\"}");
+						}
+					}else{
+						//修改状态为0 字符成功
+						userService.editState(id);
+						resp.getWriter().print(resultMap.get("result_code"));
+					}
+				}else{
+					res = "操作失败!";
+				}
+			} catch (Exception e) {
+				e.printStackTrace();
+				res = "操作失败";
+			} finally {
+				if(response != null){
+					response.close();
+				}
+				if(client != null){
+					client.close();
+				}
+			}
+			if(res.startsWith("<")){
+				resp.setHeader("Content-type", "text/xml;charset=UTF-8");
+			}else{
+				resp.setHeader("Content-type", "text/html;charset=UTF-8");
+			}
+		}else{
+			//本地查询已支付
+			resp.getWriter().write("{\"msg\":\"订单已支付\",\"result\":[{}],\"code\":\"\"}");
+		}
+	}
+}

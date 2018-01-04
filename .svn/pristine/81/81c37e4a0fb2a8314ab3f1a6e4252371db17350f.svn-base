@@ -1,0 +1,37 @@
+package cn.nvinfo.dao;
+
+
+import cn.nvinfo.domain.Custom;
+import cn.nvinfo.domain.Order;
+
+public interface UserDao {
+
+	/*
+	 * 登陆  杨立  2017-10-16
+	 */
+	Custom getUser(String loginName, String password);
+	
+	//微信支付
+	/*
+	 * 获取订单yangli 	2017-10-18
+	 */
+	Order getOrder(String out_trade_no);
+	/*
+	 * 获得订单的商品描述	yangli 	2017-10-18	  例如冰雪大世界成人票（产品名字加票型）
+	 */
+	Object getBody(String out_trade_no);
+	/*
+	 * 获得订单的总金额 	杨立	2017-10-18
+	 */
+	Object getTotalFee(String out_trade_no);
+	/*
+	 * 添加订单到数据库	YANGLI 2017-10-18
+	 */
+	int addOrder(Order order);
+	/*
+	 * 修改订单状态为为1，支付成功，添加微信订单号到order表	杨立	2017-10-26
+	 */
+	int updateOrder(Order order);
+
+
+}

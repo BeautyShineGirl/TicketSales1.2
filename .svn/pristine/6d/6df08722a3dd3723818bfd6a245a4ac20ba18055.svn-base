@@ -1,0 +1,113 @@
+package cn.nvinfo.wxpay.servlet;
+
+
+import java.io.IOException;
+import java.util.Date;
+import java.util.Map;
+import java.util.SortedMap;
+
+import javax.servlet.ServletException;
+import javax.servlet.http.HttpServlet;
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
+
+import org.apache.http.client.methods.CloseableHttpResponse;
+import org.apache.http.client.methods.HttpPost;
+import org.apache.http.entity.StringEntity;
+import org.apache.http.impl.client.CloseableHttpClient;
+import org.apache.http.impl.client.HttpClients;
+import org.apache.http.util.EntityUtils;
+
+import cn.nvinfo.utils.MD5;
+import cn.nvinfo.utils.SignUtils;
+import cn.nvinfo.utils.SwiftpassConfig;
+import cn.nvinfo.utils.XmlUtils;
+
+
+/**
+ * 关闭订单
+ * @author 杨立
+ *
+ */
+public class CloseOrderServlet extends HttpServlet {
+	private static final long serialVersionUID = 1L;
+	@Override
+	protected void doGet(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
+		doPost(req, resp);
+	}
+
+	@Override
+	protected void doPost(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
+		String out_trade_no = (String) req.getAttribute("out_trade_no");//商户订单号
+		SortedMap<String,String> map = XmlUtils.getParameterMap(req);
+		map.put("appid", "wxaea446e27328b87a");//公众账号id
+		map.put("mch_id", SwiftpassConfig.mch_id);//商户号
+		map.put("out_trade_no", out_trade_no);//商户订单号
+		map.put("nonce_str", String.valueOf(new Date().getTime()));//随即字符串
+		Map<String,String> params = SignUtils.paraFilter(map);
+		StringBuilder buf = new StringBuilder((params.size() +1) * 10);
+		SignUtils.buildPayParams(buf,params,false);
+		String preStr = buf.toString();
+		String sign = MD5.sign(preStr, "&key=" + SwiftpassConfig.key, "utf-8");
+		map.put("sign", sign);//签名
+		String reqUrl = "https://api.mch.weixin.qq.com/pay/unifiedorder";
+		CloseableHttpResponse response = null;
+		CloseableHttpClient client = null;
+		try {
+			HttpPost httpPost = new HttpPost(reqUrl);
+			StringEntity entityParams = new StringEntity(XmlUtils.parseXML(map),"utf-8");
+			httpPost.setEntity(entityParams);
+			client = HttpClients.createDefault();
+			response = client.execute(httpPost);
+			if(response != null && response.getEntity() != null){
+				Map<String,String> resultMap = XmlUtils.toMap(EntityUtils.toByteArray(response.getEntity()), "utf-8");
+				//处理返回的各种状态
+				//return_code和result_code都为success的时候
+				if("SUCCESS".equals(resultMap.get("return_code"))){
+					resp.getWriter().write("{\"msg\":\"订单关闭成功\",\"result\":[{}],\"code\":\"\"}");
+				}else{
+					
+					if("ORDERPAID".equals(resultMap.get("err_code"))){
+						resp.getWriter().write("{\"msg\":\"订单已支付\",\"result\":[{}],\"code\":\"\"}");
+					}
+					if("ORDERCLOSED".equals(resultMap.get("err_code"))){
+						resp.getWriter().write("{\"msg\":\"订单已关闭\",\"result\":[{}],\"code\":\"\"}");
+					}
+					if("SYSTEMERROR".equals(resultMap.get("err_code"))){
+						doPost(req,resp);
+					}
+					if("XML_FORMAT_ERROR".equals(resultMap.get("err_code"))){
+						for (int i = 0; i < 2; i++) {
+							doPost(req,resp);
+							resp.getWriter().write("{\"msg\":\"XML格式错误\",\"result\":[{}],\"code\":\"\"}");
+						}
+					}
+					if("REQUIRE_POST_METHOD".equals(resultMap.get("err_code"))){
+						for (int i = 0; i < 2; i++) {
+							doPost(req,resp);
+							resp.getWriter().write("{\"msg\":\"请使用post方法\",\"result\":[{}],\"code\":\"\"}");
+						}
+					}
+					//签名错误
+					if("SIGNERROR".equals(resultMap.get("err_code"))){
+						for (int i = 0; i < 2; i++) {
+							doPost(req,resp);
+							resp.getWriter().write("{\"msg\":\"签名错误\",\"result\":[{}],\"code\":\"\"}");
+						}
+					}
+				}
+			}
+		} catch (Exception e) {
+			e.printStackTrace();
+		} finally {
+			if(response != null){
+				response.close();
+			}
+			if(client != null){
+				client.close();
+			}
+		}
+		
+		
+	}
+}

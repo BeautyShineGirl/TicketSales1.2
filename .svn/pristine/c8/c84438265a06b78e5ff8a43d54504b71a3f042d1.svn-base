@@ -1,0 +1,138 @@
+package cn.nvinfo.service.imp;
+
+
+import java.util.List;
+
+import javax.annotation.Resource;
+
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import cn.nvinfo.dao.CustomDao;
+import cn.nvinfo.dao.ProductDao;
+import cn.nvinfo.domain.Custom;
+import cn.nvinfo.domain.CustomType;
+import cn.nvinfo.domain.Priority;
+import cn.nvinfo.domain.Product;
+import cn.nvinfo.service.CustomService;
+import cn.nvinfo.service.ProductService;
+import cn.nvinfo.tools.CustomList;
+import cn.nvinfo.tools.INList;
+import cn.nvinfo.tools.ProductList;
+import cn.nvinfo.utils.Pager;
+
+/**
+ *  分销商管理
+ * @author 杨立   2017-09-26
+ *
+ */
+@Service
+@Transactional
+public class CustomServiceImp implements CustomService {
+
+	@Resource
+	private CustomDao customDao;
+
+	/*
+	 *  分页查询	杨立  2017-09-26
+	 * (non-Javadoc)
+	 * @see cn.nvinfo.service.ProductService#getPager(java.lang.Integer, java.lang.Integer, java.lang.String, java.lang.String, java.lang.String, java.lang.String, double)
+	 */
+	public Pager<CustomList> getPager(Integer pageIndex, Integer pageSize,Integer id,Integer logic,
+			String name, String linkName,String custType,Integer level) {
+		Pager<CustomList> pager =new Pager<CustomList>();
+		pager.setCurrPage(pageIndex);
+		pager.setPageSize(pageSize);
+		pager.setAllCount(customDao.getAllCount(id,logic,name,linkName,custType,level));
+		pager.setDatas(customDao.getPageDate(pageIndex,pageSize,id,logic,name,linkName,custType,level));
+		pager.setPageCount();
+		return pager;
+	}
+	/*
+	 * 修改数据回显  杨立  2017-09-27(non-Javadoc)
+	 * @see cn.nvinfo.service.CustomService#getCustom(java.lang.Integer)
+	 */
+	public Custom getCustom(Integer id) {
+		return customDao.getCustom(id);
+	}
+	/*
+	 *  查询分销商类别的集合 杨立  2017-09-27(non-Javadoc)
+	 * @see cn.nvinfo.service.CustomService#getCustomType()
+	 */
+	public List<CustomType> getCustomType() {
+		return customDao.getCustomType();
+	}
+	/*
+	 *从字典表中查询分销商等级	杨立  2017-09-27
+	 * @see cn.nvinfo.service.CustomService#getLevel()
+	 */
+	public List<String> getLevel() {
+		return customDao.getLevel();
+	}
+	
+	/*
+	 * 修改	杨立	2017-09-27(non-Javadoc)
+	 * @see cn.nvinfo.service.CustomService#edit(cn.nvinfo.domain.Custom)
+	 */
+	public int edit(Custom custom) {
+		return customDao.edit(custom);
+	}
+	/*
+	 *  删除  	杨立   2017-09-27(non-Javadoc)
+	 * @see cn.nvinfo.service.CustomService#delete(java.lang.Integer)
+	 */
+	public int delete(Integer id) {
+		return customDao.delete(id);
+	}
+	/*
+	 * 审核分页显示    查询出state状态为0的分销商信息返回给页面	杨立	2017-09-27(non-Javadoc)
+	 * @see cn.nvinfo.service.CustomService#getCheckPager(java.lang.Integer)
+	 */
+	public Pager<CustomList> getCheckPager(Integer pageIndex,Integer pageSize) {
+		Pager<CustomList> pager =new Pager<CustomList>();
+		pager.setCurrPage(pageIndex);
+		pager.setPageSize(pageSize);
+		pager.setAllCount(customDao.getCheckAllCount());
+		pager.setDatas(customDao.getCheckPageDate(pageIndex,pageSize));
+		pager.setPageCount();
+		return pager;
+	}
+	/*
+	 * 审核通过操作	杨立	2017-09-27(non-Javadoc)
+	 * @see cn.nvinfo.service.CustomService#editCheck(java.lang.Integer)
+	 */
+	public int editCheck(Integer id) {
+		return customDao.editCheck(id);
+	}
+	/*
+	 * 合同管理数据回显	杨立	2017-09-28(non-Javadoc)
+	 * @see cn.nvinfo.service.CustomService#getName()
+	 */
+	public List<Custom> getCuseom() {
+		return customDao.getCuseom();
+	}
+	/*
+	 * 合同上传	杨立	2017-09-28(non-Javadoc)
+	 * @see cn.nvinfo.service.CustomService#upditURL(java.lang.String)
+	 */
+	public int upditURL(Integer id, String url) {
+		return customDao.upditURL(id,url);
+	}
+	/*
+	 * 审核不通过操作	杨立	2017-10-09(non-Javadoc)
+	 * @see cn.nvinfo.service.CustomService#editCheck(java.lang.Integer)
+	 */
+	public int checkNotPass(Integer id) {
+		return customDao.checkNotPass(id);
+	}
+	/*
+	 * 分销商注册  杨立   2017-10-16(non-Javadoc)
+	 * @see cn.nvinfo.service.CustomService#add(cn.nvinfo.domain.Custom)
+	 */
+	public int add(Custom custom) {
+		return customDao.add(custom);
+	}
+	
+
+	
+}

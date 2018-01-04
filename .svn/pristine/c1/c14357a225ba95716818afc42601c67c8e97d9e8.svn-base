@@ -1,0 +1,295 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="user">
+  	<!-- 用户登陆  杨立  2017-10-16 -->
+  	<select id="getUser" resultType="cn.nvinfo.domain.Custom">
+		select * from custom where userName=#{userName} and password = #{password}
+  	</select>
+  	<!-- 微信支付	杨立	2017-10-18 -->
+  	<!-- 查询订单 	杨立	2017-10-18 -->
+  	<select id="getOrder" resultType="cn.nvinfo.domain.Order">
+		select * from orderTable where orderId=#{out_trade_no}
+  	</select>
+  	<!-- *获得订单的商品描述	yangli 	2017-10-18	  例如冰雪大世界成人票（产品名字加票型） -->
+  	<select id="getBody" resultType="java.lang.String">
+		select p.name,p.ticketType from orderTable o 
+		left join product p on o.product_id = p.id
+		where o.orderId = #{out_trade_no}
+  	</select>
+  	<!-- 获得订单的总金额 	杨立	2017-10-18 -->
+  	<select id="getTotalFee" resultType="java.lang.String">
+		select price from orderTable where orderId=#{out_trade_no}
+  	</select>
+  	<!-- 添加订单到数据库	YANGLI 2017-10-18-->
+  	<insert id="addOrder" parameterType="cn.nvinfo.domain.Order" useGeneratedKeys="true">
+  		insert into orderTable (id,product_id,cust_id,supplier_id,view_id,orderId,productName,custName,custOrder,supplierOrder,ispay,orderState,payId,
+  		orderNumber,unitPrice,price,createDate,useDate,orderCode,userPhone,userName,idCard,idCardType,remark,userId) 
+  		values(#{id},#{productId},#{customId},#{supplierId},#{viewId},#{orderId},#{productName},#{custName},#{custOrder},#{supplierOrder},#{ispay},
+  		#{orderState},#{payId},#{orderNumber},#{unitPrice},#{price},#{createDate},#{useDate},#{orderCode},#{userPhone},#{userName},#{idCard},#{idCardType},#{remark},#{userId})
+  	</insert>
+  		<!-- 先从订单表中把该支付成功的订单查出来	2017-11-07-->
+  	<select id="getOrderSuccess" resultType="cn.nvinfo.domain.Order">
+		select o.userName,o.useDate,o.productName,o.orderNumber,o.orderId,o.orderCode,v.name viewName,o.userPhone,o.supplier_id supplierId,o.product_id productId,o.supplierOrder supplierOrder from orderTable o 
+		left join viewMessage v on o.view_id=v.id
+		where orderId=#{outTradeNo}
+  	</select>
+  	<!-- 修改订单状态为为0，支付成功，添加微信订单号到order表	杨立	2017-10-26  -->
+  	<update id="updateOrder" parameterType="cn.nvinfo.domain.Order" useGeneratedKeys="true">
+  		update orderTable set supplierOrderState=#{supplierOrderState},transaction_id=#{transaction_id},reason=#{reason} where orderId=#{orderId} 
+  	</update>
+  	<!-- 在本地数据库中查询，若查询状态不是orderState为3，则发起向微信退款查询（refundQueryServlet）YANGLI 2017-10-26 -->
+  	<select id="queryRefund" resultType="int">
+		select orderState from orderTable where id=#{id}
+  	</select>
+  	<!-- 向微信发出查询退款申请返回退款成功，	yangli 	2017-10-26  -->
+  	<update id="updateOrderState" parameterType="cn.nvinfo.domain.Order" useGeneratedKeys="true">
+  		update orderTable set orderState=3 where orderId=#{orderId} 
+  	</update>
+  	 <!--  查询提交的订单 是否已支付，如未支付orderState=1，则向微信发出支付请求	杨立	2017-10-26 -->
+  	<select id="selectOrderState" resultType="int">
+		select orderState from orderTable where orderId=#{id}
+  	</select>
+  	<!-- 修改状态为0 支付成功	查询支付订单	杨立	2017-10-26  -->
+  	<update id="editState" parameterType="cn.nvinfo.domain.Order" useGeneratedKeys="true">
+  		update orderTable set orderState=0 where orderId=#{orderId} 
+  	</update>
+  	
+  	<!--  sort为0的景区	杨立	2017-11-1 
+  	<select id="getScopeView" resultType="cn.nvinfo.domain.ViewMessage">
+		select	* from viewMessage where sort=0 
+  	</select>
+  	-->
+  	
+  	<!-- 此段代码待优化 -->
+  		 <!-- 轮播图	返回优先级0到4的产品及每个产品所对应的景区照片所对应的集合-->
+  	<select id="getProduct" resultType="cn.nvinfo.domain.Product">
+		select pro.id,pro.view_id,pro.supplier_id,pro.ticketType,pro.priority_id,pro.customName,
+		pro.name,pro.endPrice,pro.marketPrice,pro.salePrice,pro.isSale,pro.startTime,pro.endTime,pro.dailySale,
+		pro.num,pro.orderTime,pro.isCancel,pro.type,pro.notice,pro.costInside,pro.costOutside,pro.remark,pro.userType,
+		pro.priorityType,pro.method,pro.customId,
+		v.picture picture from product pro
+		left join priority prt on prt.id= pro.priority_id
+		left join viewMessage v on pro.view_id=v.id
+		where prt.priority&gt;=0 and prt.priority&lt;=4
+		order by prt.priority 
+  	</select>
+  	 <!--  优先级最高的产品	优先级为5	杨立	2017-11-1 -->
+  	<select id="getExpeciallyProduct" resultType="cn.nvinfo.domain.Product">
+		select pro.id,pro.view_id,pro.supplier_id,pro.ticketType,pro.priority_id,pro.customName,
+		pro.name,pro.endPrice,pro.marketPrice,pro.salePrice,pro.isSale,pro.startTime,pro.endTime,pro.dailySale,
+		pro.num,pro.orderTime,pro.isCancel,pro.type,pro.notice,pro.costInside,pro.costOutside,pro.remark,pro.userType,
+		pro.priorityType,pro.method,pro.customId,
+		v.picture picture from product pro
+		left join priority prt on prt.id= pro.priority_id
+		left join viewMessage v on pro.view_id=v.id
+		where prt.priority=5
+		order by prt.priority 
+  	</select>
+  	<!-- 特别推荐 	 点击更多时出现所有产品	按优先级顺序排列  	杨立	2017-11-1 -->
+  	<select id="getExpeciallyMore" resultType="cn.nvinfo.domain.Product">
+		select pro.id,pro.view_id,pro.supplier_id,pro.ticketType,pro.priority_id,pro.customName,
+		pro.name,pro.endPrice,pro.marketPrice,pro.salePrice,pro.isSale,pro.startTime,pro.endTime,pro.dailySale,
+		pro.num,pro.orderTime,pro.isCancel,pro.type,pro.notice,pro.costInside,pro.costOutside,pro.remark,pro.userType,
+		pro.priorityType,pro.method,pro.customId,
+		v.picture picture from product pro
+		left join priority prt on prt.id= pro.priority_id
+		left join viewMessage v on pro.view_id=v.id
+		where prt.priority=5
+		order by prt.priority 
+  	</select>
+  	<!-- 景点游	优先级为6的景区 按优先级排列   从打到小的顺序	杨立	2017-11-1 -->
+  	<select id="getViewTravalPro" resultType="cn.nvinfo.domain.Product">
+		select pro.id,pro.view_id,pro.supplier_id,pro.ticketType,pro.priority_id,pro.customName,
+		pro.name,pro.endPrice,pro.marketPrice,pro.salePrice,pro.isSale,pro.startTime,pro.endTime,pro.dailySale,
+		pro.num,pro.orderTime,pro.isCancel,pro.type,pro.notice,pro.costInside,pro.costOutside,pro.remark,pro.userType,
+		pro.priorityType,pro.method,pro.customId,
+		v.picture picture from product pro
+		left join priority prt on prt.id= pro.priority_id
+		left join viewMessage v on pro.view_id=v.id
+		where prt.priority=6
+		order by prt.priority 
+  	</select>
+  	<!--  景点游点击更多  	优先级为6  	杨立	2017-11-07 -->
+  	<select id="viewTravalMore" resultType="cn.nvinfo.domain.Product">
+		select pro.id,pro.view_id,pro.supplier_id,pro.ticketType,pro.priority_id,pro.customName,
+		pro.name,pro.endPrice,pro.marketPrice,pro.salePrice,pro.isSale,pro.startTime,pro.endTime,pro.dailySale,
+		pro.num,pro.orderTime,pro.isCancel,pro.type,pro.notice,pro.costInside,pro.costOutside,pro.remark,pro.userType,
+		pro.priorityType,pro.method,pro.customId,
+		v.picture picture from product pro
+		left join priority prt on prt.id= pro.priority_id
+		left join viewMessage v on pro.view_id=v.id
+		where prt.priority=6
+		order by prt.priority 
+  	</select>
+  	<!-- 周边游	优先级为7的景区  且不是西安的景区的产品	杨立	2017-11-1 -->
+  	<select id="getRimTravalPro" resultType="cn.nvinfo.domain.Product">
+		select pro.id,pro.view_id,pro.supplier_id,pro.ticketType,pro.priority_id,pro.customName,
+		pro.name,pro.endPrice,pro.marketPrice,pro.salePrice,pro.isSale,pro.startTime,pro.endTime,pro.dailySale,
+		pro.num,pro.orderTime,pro.isCancel,pro.type,pro.notice,pro.costInside,pro.costOutside,pro.remark,pro.userType,
+		pro.priorityType,pro.method,pro.customId,
+		v.picture picture from product pro
+		left join priority prt on prt.id= pro.priority_id
+		left join viewMessage v on pro.view_id=v.id
+		where prt.priority=7 and v.city<![CDATA[ <> ]]>'西安市'
+		order by prt.priority 
+  	</select>
+  	<!--  周边游点击更多 	优先级为7  	杨立	2017-11-07-->
+  	<select id="getRimTraval" resultType="cn.nvinfo.domain.Product">
+		select pro.id,pro.view_id,pro.supplier_id,pro.ticketType,pro.priority_id,pro.customName,
+		pro.name,pro.endPrice,pro.marketPrice,pro.salePrice,pro.isSale,pro.startTime,pro.endTime,pro.dailySale,
+		pro.num,pro.orderTime,pro.isCancel,pro.type,pro.notice,pro.costInside,pro.costOutside,pro.remark,pro.userType,
+		pro.priorityType,pro.method,pro.customId,
+		v.picture picture from product pro
+		left join priority prt on prt.id= pro.priority_id
+		left join viewMessage v on pro.view_id=v.id
+		where prt.priority=7 and v.city<![CDATA[ <> ]]>'西安市'
+		order by prt.priority
+  	</select>
+  	<!-- 国内游	优先级为8的景区  	杨立	2017-11-1 -->
+  	<select id="getNationalTravalPro" resultType="cn.nvinfo.domain.Product">
+		select pro.id,pro.view_id,pro.supplier_id,pro.ticketType,pro.priority_id,pro.customName,
+		pro.name,pro.endPrice,pro.marketPrice,pro.salePrice,pro.isSale,pro.startTime,pro.endTime,pro.dailySale,
+		pro.num,pro.orderTime,pro.isCancel,pro.type,pro.notice,pro.costInside,pro.costOutside,pro.remark,pro.userType,
+		pro.priorityType,pro.method,pro.customId,
+		v.picture picture from product pro
+		left join priority prt on prt.id= pro.priority_id
+		left join viewMessage v on pro.view_id=v.id
+		where prt.priority=8 
+		order by prt.priority 
+  	</select>
+  	<!--  国内游点击更多   优先级为8	杨立	2017-11-07-->
+  	<select id="getNationalTravalMore" resultType="cn.nvinfo.domain.Product">
+		select pro.id,pro.view_id,pro.supplier_id,pro.ticketType,pro.priority_id priorityId,pro.customName,
+		pro.name,pro.endPrice,pro.marketPrice,pro.salePrice,pro.isSale,pro.startTime,pro.endTime,pro.dailySale,
+		pro.num,pro.orderTime,pro.isCancel,pro.type,pro.notice,pro.costInside,pro.costOutside,pro.remark,pro.userType,
+		pro.priorityType,pro.method,pro.customId,
+		v.picture picture from product pro
+		left join priority prt on prt.id= pro.priority_id
+		left join viewMessage v on pro.view_id=v.id
+		where prt.priority=8
+		order by prt.priority 
+  	</select>
+  	<!--  根据id返回产品详情  杨立  2017-11-1-->
+  	<select id="getById" resultType="cn.nvinfo.domain.Product">
+		select pro.id,pro.view_id viewId,pro.supplier_id supplierId,pro.ticketType,pro.priority_id,pro.customName,
+		pro.name,pro.endPrice,pro.marketPrice,pro.salePrice,pro.isSale,pro.startTime,pro.endTime,pro.dailySale,
+		pro.num,pro.orderTime,pro.isCancel,pro.type,pro.notice,pro.costInside,pro.costOutside,pro.remark,pro.userType,
+		pro.priorityType,pro.method,pro.customId,
+		v.picture picture,v.name viewName,pro.pro_img,s.name supplierName,c.datePrice datePrice,v.remark viewRemark 
+		 from product pro
+		left join priority prt on prt.id= pro.priority_id
+		left join viewMessage v on pro.view_id=v.id
+		left join calendar c on c.product_id=pro.id
+		left join supplier s on s.id= pro.supplier_id
+		where pro.id=#{id}
+  	</select>
+  	
+  		<!-- 分销商页面搜索框  杨立  2017-11-3 -->
+  	<select id="getKeyWordProduct" resultType="cn.nvinfo.domain.Product" parameterType="String">
+		select pro.id,pro.view_id,pro.supplier_id,pro.ticketType,pro.priority_id,pro.customName,
+		pro.name,pro.endPrice,pro.marketPrice,pro.salePrice,pro.isSale,pro.startTime,pro.endTime,pro.dailySale,
+		pro.num,pro.orderTime,pro.isCancel,pro.type,pro.notice,pro.costInside,pro.costOutside,pro.remark,pro.userType,
+		pro.priorityType,pro.method,pro.customId,
+		v.picture picture,v.name viewName from product pro
+		left join priority prt on prt.id= pro.priority_id
+		left join viewMessage v on pro.view_id=v.id
+		where 1=1
+		<if test = " _parameter!=null and _parameter!='' ">
+			and pro.name like '%${_parameter}%'
+		</if>
+		
+		order by prt.priority 
+  	</select>
+  	
+  	
+  	<!-- 修改首页为景区，点击图片后为产品列表	2017-11-08 -->
+  	<!--特别推荐	 获得sort为1的景区的集合	杨立	2017-11-08-->
+  	<select id="getExpeciallyView" resultType="cn.nvinfo.domain.ViewMessage">
+		select * from viewMessage where sort=1 order by sort
+  	</select>
+  	<!--景点游	 获得sort为2的景区的集合	杨立	2017-11-08-->
+  	<select id="getViewTravalView" resultType="cn.nvinfo.domain.ViewMessage">
+		select * from viewMessage where sort=2 order by sort
+  	</select>
+  	<!--周边游景区信息	获得sort为3的景区的集合	杨立	2017-11-08-->
+  	<select id="getRimTravalView" resultType="cn.nvinfo.domain.ViewMessage">
+		select * from viewMessage where sort=3 and city<![CDATA[ <> ]]>'西安市' order by sort
+  	</select>
+  		<!-- 国内游景区信息	获得sort为4的景区的集合	杨立	2017-11-08-->
+  	<select id="getNationalTravalView" resultType="cn.nvinfo.domain.ViewMessage">
+		select * from viewMessage where sort=4 order by sort
+  	</select>
+  	<!--  查询根据景区id返回产品List详情	yangli	2017-11-08-->
+  	<select id="getByIdList" resultType="cn.nvinfo.domain.Product">
+		select pro.id,pro.view_id viewId,pro.supplier_id supplierId,pro.ticketType,pro.priority_id priorityId,pro.customName,
+		pro.name,pro.endPrice,pro.marketPrice,pro.salePrice,pro.isSale,pro.startTime,pro.endTime,pro.dailySale,
+		pro.num,pro.orderTime,pro.isCancel,pro.type,pro.notice,pro.costInside,pro.costOutside,pro.remark,pro.userType,
+		pro.priorityType,pro.method,pro.customId,
+		v.picture picture,pro.pro_img,v.name viewName,s.name supplierName ,c.datePrice datePrice,v.remark viewRemark
+		from product pro
+		left join priority prt on prt.id= pro.priority_id
+		left join viewMessage v on pro.view_id=v.id
+		left join calendar c on c.product_id=pro.id
+		left join supplier s on s.id= pro.supplier_id
+		where v.id=#{id}
+		order by prt.priority
+  	</select>
+  	<!-- 在本地数据库中查询此订单是否已经存在	2017-11-09 -->
+  	<select id="getByOrderId" resultType="java.lang.String">
+		select orderId from orderTable where orderId = #{orderId}
+  	</select>
+  	
+  	<!--  查询分销商成功支付或者退款的订单
+	  		支付成功订单查询 state=0
+			 退款成功订单state=3	杨立	2017-11-13-->
+  	<select id="getStateOerder" resultType="cn.nvinfo.domain.Order">
+		select o.*,v.picture picture from orderTable o 
+		left join viewMessage v on o.view_id=v.id 
+		where userId=#{userId} and orderState=#{state}
+		order by o.createDate desc,id desc
+  	</select>
+  	   
+  	<!--  分销商用户删除已退款订单 state=3	2017-11-14 -->
+  	<delete id="deleteRefund" parameterType="cn.nvinfo.domain.Order">
+  		delete from orderTable where id=#{id}
+  	</delete>
+  	
+  	<!--获取订单的出发日期	2017-11-14	-->
+  	<select id="queryUseDate" resultType="java.lang.String">
+  	select useDate from orderTable  where orderId=#{id}
+  	</select>
+  	
+  		<!--根据产品编号，查询第三方的产品编号 	yangli 2017-12-08-->
+  	<select id="getProductNo" resultType="int">
+		select productNo from product where id= #{productId}
+  	</select>
+  	
+  	<!--//获取order_id,order_money,order_state,保存到数据库	2017-12-08 -->
+  	<update id="updateAnotherOrder" parameterType="cn.nvinfo.domain.Order" useGeneratedKeys="true">
+  		update orderTable set supplierOrder=#{supplierOrder},supplierOrderMoney=#{supplierOrderMoney},supplierOrderState=#{supplierOrderState} where orderId=#{orderId} 
+  	</update>
+  	
+  	<!--//将第三方给客户返回的短信验证码保存到orderCode中	yangli 2017-12-11 -->
+  	<update id="insertCode" parameterType="cn.nvinfo.domain.Order" useGeneratedKeys="true">
+  		update orderTable set orderCode=#{orderCode},supplierOrderState=#{supplierOrderState} where product_id=#{productId} 
+  	</update>
+  	
+  	
+  	<!--//根据供应商id得到供应商的名字	yangli	2017-12-11	-->
+  	<select id="getSupplierName" resultType="java.lang.String">
+  	select name from supplier  where id=#{supplierId}
+  	</select>
+  	
+  	
+  	<!--//得到订单的产品数量，orderNumber ，然后更新产品表中的num		yangli	2017-12-12 -->
+  	<update id="updateProductNum" parameterType="cn.nvinfo.domain.Product" useGeneratedKeys="true">
+  		update product set num=#{newNum} where id=#{productId} 
+  	</update>
+  	
+  	<!--//退款成功，更新SupplierOrderState -->
+  	<update id="updateSuplierState" parameterType="cn.nvinfo.domain.Order" useGeneratedKeys="true">
+  		update orderTable set supplierOrderState=#{supplierOrderState} where product_id=#{productId} 
+  	</update>
+</mapper>

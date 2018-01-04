@@ -1,0 +1,74 @@
+
+package cn.nvinfo.pay.servlet;
+
+import java.util.HashMap;
+import java.util.Map;
+
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
+
+import org.dom4j.Document;
+import org.dom4j.DocumentException;
+import org.dom4j.DocumentHelper;
+import org.dom4j.Element;
+
+import cn.nvinfo.utils.HttpUtils;
+import cn.nvinfo.utils.Log;
+
+public class Create {
+
+	/**
+	 * 新浪潮创建订单
+	 * 
+	 * @param request
+	 * @param response
+	 */
+	public static void xlcCreateOrder(HttpServletRequest request, HttpServletResponse response) {
+		String CUSTID = "458851";
+		String APIKEY = "C9345AA6E937FB919A7018EC9FFCC114";
+		String URL = "http://b2b.029ly.cn/api/order.jsp";
+		String travelDate = (String) request.getAttribute("travel_date");
+		String infoId = (String) request.getAttribute("info_id");
+		String orderSourceId = (String) request.getAttribute("order_source_id");
+		String num = (String) request.getAttribute("num");
+		String linkMan = (String) request.getAttribute("link_man");
+		String linkPhone = (String) request.getAttribute("link_phone");
+		String linkCreditNo = (String) request.getAttribute("link_credit_no");
+		Log.write("出游日期：" + travelDate + "产品号:" + infoId + "订单号：" + orderSourceId + "数量：" + num + "联系人：" + linkMan
+				+ "联系方式：" + linkPhone+"证件号码："+linkCreditNo);
+		Map<String, String> map = new HashMap<String, String>();
+		map.put("custId", CUSTID);
+		map.put("apikey", APIKEY);
+		map.put("param",
+				"<order><travel_date>" + travelDate + "</travel_date><info_id>" + infoId + "</info_id><cust_id>"
+						+ CUSTID + "</cust_id><order_source_id>" + orderSourceId + "</order_source_id><num>" + num
+						+ "</num><link_man>" + linkMan + "</link_man><link_phone>" + linkPhone
+						+ "</link_phone><link_credit_type>0</link_credit_type><link_credit_no>" + linkCreditNo
+						+ "</link_credit_no></order>");
+		String result = HttpUtils.sendGet(URL, map);
+		Log.write("新浪潮下单返回的数据:"+result);
+		Document doc;
+		try {
+			doc = DocumentHelper.parseText(result);
+			Element root = doc.getRootElement();
+			Element status = root.element("status");
+			String statusValue = status.getTextTrim();
+			if (statusValue.equals("1")) {// 下单成功
+				request.setAttribute("status", Integer.parseInt(statusValue));
+				request.setAttribute("msg", root.element("msg").getTextTrim());
+				request.setAttribute("order_id", root.element("order_id").getTextTrim());
+				request.setAttribute("order_money", root.element("order_money").getTextTrim());
+				request.setAttribute("order_state", root.element("order_state").getTextTrim());
+			} else {// 下单失败
+				request.setAttribute("status", Integer.parseInt(statusValue));
+				request.setAttribute("msg", root.element("msg").getTextTrim());
+				request.setAttribute("error_state", root.element("error_state").getTextTrim());
+				request.setAttribute("error_msg", root.element("error_msg").getTextTrim());
+			}
+		} catch (DocumentException e) {
+			e.printStackTrace();
+		}
+
+	}
+
+}

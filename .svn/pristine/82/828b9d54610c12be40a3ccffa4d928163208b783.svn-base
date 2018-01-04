@@ -1,0 +1,26 @@
+package cn.nvinfo.service;
+
+
+import cn.nvinfo.tools.OrderList;
+import cn.nvinfo.utils.Pager;
+
+/**
+ * 订单管理
+ * @author 杨立   2017-09-28
+ *
+ */
+public interface OrderService {
+	/*
+	 * 分页查询	杨立  2017-09-28
+	 */
+	Pager<OrderList> getPager(Integer pageIndex, Integer pageSize,
+			String orderId, String product, String view, Integer state,
+			String custom, String supplier, Integer power_id, Integer staff_id);
+	/*
+	 * 未支付账单查询 state=0
+	 * 已核销订单state=2	杨立	2017-09-28
+	 */
+	Pager<OrderList> getStateOerder(Integer pageIndex, Integer pageSize,
+			String startTime, String endTime, Integer state, Integer power_id, Integer staff_id);
+
+}

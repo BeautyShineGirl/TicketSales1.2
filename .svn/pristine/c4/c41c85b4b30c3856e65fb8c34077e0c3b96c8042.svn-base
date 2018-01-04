@@ -1,0 +1,58 @@
+
+package cn.nvinfo.pay.servlet;
+
+import java.util.HashMap;
+import java.util.Map;
+
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
+
+import org.dom4j.Document;
+import org.dom4j.DocumentException;
+import org.dom4j.DocumentHelper;
+import org.dom4j.Element;
+
+import cn.nvinfo.utils.HttpUtils;
+import cn.nvinfo.utils.Log;
+
+public class Cancel {
+	/**
+	 * 新浪潮取消订单
+	 * @param request
+	 * @param response
+	 */
+	public static void xlcCancelOrder(HttpServletRequest request, HttpServletResponse response) {
+		String CUSTID = "458851";
+		String APIKEY = "C9345AA6E937FB919A7018EC9FFCC114";
+		String URL = "http://b2b.029ly.cn/api/cancelOrder.jsp";
+		String orderId = (String) request.getAttribute("orderId");
+		Log.write("订单号："+orderId);
+		Map<String, String> map = new HashMap<String, String>();
+		map.put("custId", CUSTID);
+		map.put("apikey", APIKEY);
+		map.put("orderId", orderId);
+		String result = HttpUtils.sendGet(URL, map);
+		Log.write("新浪潮取消订单返回的数据:"+result);
+		try {
+			Document doc = DocumentHelper.parseText(result);
+			Element root = doc.getRootElement();
+			Element status = root.element("status");
+			String statusValue = status.getTextTrim();
+			if (statusValue.equals("1")) {
+				request.setAttribute("status", Integer.parseInt(statusValue));
+				request.setAttribute("msg", root.element("msg").getTextTrim());
+				request.setAttribute("orderId", root.element("orderId").getTextTrim());
+
+			} else {
+				request.setAttribute("status", Integer.parseInt(statusValue));
+				request.setAttribute("msg", root.element("msg").getTextTrim());
+				request.setAttribute("error_state", root.element("error_state").getTextTrim());
+				request.setAttribute("error_msg", root.element("error_msg").getTextTrim());
+			}
+		} catch (DocumentException e){
+			e.printStackTrace();
+		}
+
+	}
+
+}

@@ -1,0 +1,77 @@
+package cn.nvinfo.tools;
+/**
+ * 产品信息管理    分压查询页面展示
+ * @author yangli 2017-09-25
+ *
+ */
+public class ProductList {
+
+	private int id;//景区编号
+	private String name;//产品名称
+	private String viewName;//景区名称
+	private String supplierName;//供应商
+	private double endPrice;//结算价
+	private double marketPrice;//门市价
+	private String salePrice;//销售价
+	private String priorityType;//优先级分类
+	private String isSale;//是否销售
+	public ProductList() {
+		super();
+	}
+	public int getId() {
+		return id;
+	}
+	public void setId(int id) {
+		this.id = id;
+	}
+	public String getName() {
+		return name;
+	}
+	public void setName(String name) {
+		this.name = name;
+	}
+	public String getViewName() {
+		return viewName;
+	}
+	public void setViewName(String viewName) {
+		this.viewName = viewName;
+	}
+	public String getSupplierName() {
+		return supplierName;
+	}
+	public void setSupplierName(String supplierName) {
+		this.supplierName = supplierName;
+	}
+	public double getEndPrice() {
+		return endPrice;
+	}
+	public void setEndPrice(double endPrice) {
+		this.endPrice = endPrice;
+	}
+	public double getMarketPrice() {
+		return marketPrice;
+	}
+	public void setMarketPrice(double marketPrice) {
+		this.marketPrice = marketPrice;
+	}
+	public String getPriorityType() {
+		return priorityType;
+	}
+	public void setPriorityType(String priorityType) {
+		this.priorityType = priorityType;
+	}
+	public String getIsSale() {
+		return isSale;
+	}
+	public void setIsSale(String isSale) {
+		this.isSale = isSale;
+	}
+	public String getSalePrice() {
+		return salePrice;
+	}
+	public void setSalePrice(String salePrice) {
+		this.salePrice = salePrice;
+	}
+	
+	
+}

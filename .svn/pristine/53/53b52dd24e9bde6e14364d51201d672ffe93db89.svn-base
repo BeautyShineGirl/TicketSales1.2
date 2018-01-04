@@ -1,0 +1,103 @@
+package cn.nvinfo.alipay.servlet;
+
+import java.io.IOException;
+
+import javax.servlet.ServletException;
+import javax.servlet.http.HttpServlet;
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
+
+
+import com.alipay.api.AlipayApiException;
+import com.alipay.api.AlipayClient;
+import com.alipay.api.DefaultAlipayClient;
+import com.alipay.api.request.AlipayTradeFastpayRefundQueryRequest;
+import com.alipay.api.response.AlipayTradeFastpayRefundQueryResponse;
+import cn.nvinfo.service.UserService;
+import cn.nvinfo.service.imp.UserServiceImp;
+import cn.nvinfo.utils.AlipayConfig;
+import cn.nvinfo.utils.CheckUtil;
+
+
+/**
+ * <一句话功能简述>
+ * <功能详细描述>退款查询
+ * 
+ * @author  Administrator
+ * @version  [版本号, 2014-8-29]
+ * @see  [相关类/方法]
+ * @since  [产品/模块版本]
+ */
+public class AlipayRefundQueryServlet extends HttpServlet {
+	private static final long serialVersionUID = 1L;
+
+	@Override
+	protected void doGet(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
+		doPost(req,resp); 
+	}
+
+	@Override
+	protected void doPost(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
+		req.setCharacterEncoding("utf-8");
+		resp.setCharacterEncoding("utf-8");
+		String out_trade_no=req.getParameter("out_trade_no");//订单表中的orderId
+		Integer id=Integer.parseInt(req.getParameter("id"));//获得订单的id 用于在本地数据库查询定的的状态
+		//验证参数
+		if(!"".equals(CheckUtil.checkArgsNotNull(id,out_trade_no))){
+			resp.getWriter().write("{\"msg\":\"参数错误\",\"result\":[{}],\"code\":\"\"}");
+		}
+		//在本地数据库中查询，若查询状态不是orderState为3，则发起向支付宝退款查询（alipayRefundQueryServlet）
+		UserService userService=new UserServiceImp();
+		int state= userService.queryRefund(id);
+		if(state!=3){
+			//公共参数
+			AlipayClient alipayClient = new DefaultAlipayClient("https://openapi.alipay.com/gateway.do",
+					AlipayConfig.app_id,AlipayConfig.private_key,"json","UTF-8",AlipayConfig.alipay_public_key,"RSA2");
+			AlipayTradeFastpayRefundQueryRequest request = new AlipayTradeFastpayRefundQueryRequest();
+			request.setBizContent("{" +
+			"\"out_trade_no\":\""+out_trade_no+"\"," +
+			"}");
+			try {
+				AlipayTradeFastpayRefundQueryResponse response = alipayClient.execute(request);
+				if(response.isSuccess()){
+					/*
+					 * 调用成功
+					 */
+					//修改状态为0 字符成功
+					userService.editState(id);
+					resp.getWriter().write("{\"msg\":\"订单已支付\",\"result\":[{}],\"code\":\"\"}");
+				} else {
+					/*
+					 * 调用失败
+					 */
+					//网关错误
+					if(!response.getCode().equals("10000")){
+						resp.getWriter().write("{\"msg\":\"系统错误\",\"result\":[{}],\"code\":\"\"}");
+					}
+					// 	系统错误
+					if("ACQ.SYSTEM_ERROR".equals(response.getSubMsg())){
+						for (int i = 0; i < 1; i++) {
+							doPost(req,resp);
+							resp.getWriter().write("{\"msg\":\"系统错误\",\"result\":[{}],\"code\":\"\"}");
+						}
+					}
+					// 	参数无效
+					if("ACQ.INVALID_PARAMETER".equals(response.getSubMsg())){
+						resp.getWriter().write("{\"msg\":\"检查请求参数，修改后重新发起请求 \",\"result\":[{}],\"code\":\"\"}");
+					}
+					//查询的交易不存在
+					if("ACQ.TRADE_NOT_EXIST".equals(response.getSubMsg())){
+						resp.getWriter().write("{\"msg\":\"查询的交易不存在\",\"result\":[{}],\"code\":\"\"}");
+					}
+				}
+			} catch (AlipayApiException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+		}else{
+			//本地查询数据库订单表退款申请返回退款成功
+			resp.getWriter().write("{\"msg\":\"退款成功\",\"result\":[{}],\"code\":\"\"}");
+		}
+	}
+
+}

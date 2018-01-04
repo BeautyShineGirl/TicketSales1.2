@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project-module
+  type="WEB"
+  name="TicketSales"
+  id="myeclipse.1504164024270"
+  context-root="/TicketSales"
+  j2ee-spec="5.0"
+  archive="TicketSales.war">
+  <attributes>
+    <attribute name="webrootdir" value="WebRoot" />
+  </attributes>
+</project-module>
+

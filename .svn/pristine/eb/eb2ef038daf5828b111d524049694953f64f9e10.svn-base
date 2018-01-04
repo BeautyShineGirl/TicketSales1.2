@@ -1,0 +1,247 @@
+package cn.nvinfo.alipay.servlet;
+
+import java.io.IOException;
+import java.text.SimpleDateFormat;
+import java.util.Date;
+
+import javax.servlet.ServletException;
+import javax.servlet.http.HttpServlet;
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
+
+import net.sf.json.JSONObject;
+
+import org.apache.log4j.Logger;
+import org.springframework.web.context.WebApplicationContext;
+import org.springframework.web.context.support.WebApplicationContextUtils;
+
+
+import com.alipay.api.AlipayApiException;
+import com.alipay.api.AlipayClient;
+import com.alipay.api.DefaultAlipayClient;
+import com.alipay.api.request.AlipayTradeFastpayRefundQueryRequest;
+import com.alipay.api.response.AlipayTradeFastpayRefundQueryResponse;
+
+import cn.nvinfo.domain.Order;
+import cn.nvinfo.service.UserService;
+import cn.nvinfo.utils.AlipayConfig;
+import cn.nvinfo.utils.CheckUtil;
+import cn.nvinfo.utils.SMS;
+
+
+/**
+ * <一句话功能简述>
+ * <功能详细描述>退款查询
+ * 
+ * @author  Administrator
+ */
+public class AlipayRefundQueryServlet extends HttpServlet {
+	private static Logger log=Logger.getLogger(AlipayQueryServlet.class);
+	private static final long serialVersionUID = 1L;
+
+	@Override
+	protected void doGet(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
+		doPost(req,resp); 
+	}
+
+	@Override
+	protected void doPost(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
+		req.setCharacterEncoding("utf-8");
+		resp.setCharacterEncoding("utf-8");
+		//获取spring容器中的service
+		WebApplicationContext  ctx= WebApplicationContextUtils.getWebApplicationContext(this.getServletContext());
+		UserService userService = (UserService) ctx.getBean("userService");
+		String out_trade_no=req.getParameter("out_trade_no");//订单表中的orderId
+		String out_request_no=req.getParameter("out_request_no");//退款请求号
+		Integer id=Integer.parseInt(req.getParameter("id"));//获得订单的id 用于在本地数据库查询定的的状态
+		log.info("=====================================AlipayRefundQueryServlet=====================================");
+		log.info("===============================================退款查询操作开始===============================================");
+		log.info("请求alipayRefundQueryServlet退款查询是前台或alipayRefundServlet传过来的数据："+System.getProperty("line.separator")+"\t\t\t\t"+
+				"请求alipayRefundQueryServlet退款查询是前台或alipayRefundServlet传过来的数据{"+System.getProperty("line.separator")+"\t\t\t\t\t"+
+				"out_trade_no:"+out_trade_no +System.getProperty("line.separator")+"\t\t\t\t\t"+
+				"out_request_no:"+out_request_no +System.getProperty("line.separator")+"\t\t\t\t\t\t\t\t"+
+				"id:"+id +System.getProperty("line.separator")+
+				" }");
+		int state=0;
+		if(id!=0&&id!=null){
+			//在本地数据库中查询，若查询状态不是orderState为3，则发起向支付宝退款查询（alipayRefundQueryServlet）
+			state= userService.queryRefund(id);
+		}
+		if(state!=3||state==0){
+			log.info("公共参数："+"https://openapi.alipay.com/gateway.do"+
+					", app_id="+AlipayConfig.app_id+System.getProperty("line.separator")+"\t\t\t\t"
+					+", private_key="+AlipayConfig.private_key+"json"+"UTF-8"+System.getProperty("line.separator")+"\t\t\t\t"
+					+", alipay_public_key="+AlipayConfig.alipay_public_key+"RSA2");
+			//公共参数
+			AlipayClient alipayClient = new DefaultAlipayClient("https://openapi.alipay.com/gateway.do",
+					AlipayConfig.app_id,AlipayConfig.private_key,"json","UTF-8",AlipayConfig.alipay_public_key,"RSA2");
+			AlipayTradeFastpayRefundQueryRequest request = new AlipayTradeFastpayRefundQueryRequest();
+			request.setBizContent("{" +
+					"\"out_trade_no\":\""+out_trade_no+"\"," +
+					"\"out_request_no\":\""+out_request_no+"\"" +
+					"}");
+			log.info("请求退款查询时提交服务器的数据："+System.getProperty("line.separator")+"\t\t\t\t"+
+					"请求退款查询时提交服务器的数据{"+System.getProperty("line.separator")+"\t\t\t\t\t"+
+					"out_trade_no:"+out_trade_no +System.getProperty("line.separator")+"\t\t\t\t\t"+
+					"out_request_no:"+out_request_no +System.getProperty("line.separator")+"\t\t\t\t"+
+					" }");
+			try {
+				AlipayTradeFastpayRefundQueryResponse response = alipayClient.execute(request);
+				if(response.isSuccess()){
+					log.info("请求支付宝退款查询返回成功时的数据："+System.getProperty("line.separator")+"\t\t\t\t"+
+							"alipay_trade_fastpay_refund_query_response{"+System.getProperty("line.separator")+"\t\t\t\t\t"+
+							"code:"+response.getCode()+System.getProperty("line.separator")+"\t\t\t\t\t"+
+							"msg:" +response.getMsg()+System.getProperty("line.separator")+"\t\t\t\t\t"+
+							"out_trade_no:"+out_trade_no+"\"," +System.getProperty("line.separator")+"\t\t\t\t\t"+
+							"out_request_no:"+out_request_no+"" +System.getProperty("line.separator")+"\t\t\t\t"+
+							" }");
+					/*
+					 * 调用成功
+					 */
+					if(response.getCode().equals("10000")){
+						if(response.getBody()!=null){
+							//先从订单表中把该支付成功的订单查出来	2017-11-07
+							Order order2=userService.getOrderSuccess(out_trade_no);
+							//得到订单的产品数量，orderNumber ，然后更新产品表中的num		yangli	2017-12-12
+							Integer productId=order2.getProductId();
+							Integer num2= userService.getById(productId).getNum();
+							Integer newNum=order2.getOrderNumber()+num2;
+							Integer supplierId=order2.getSupplierId();
+							//根据供应商id得到供应商的名字	yangli	2017-12-11
+							String supplierName=userService.getSupplierName(supplierId);
+							SimpleDateFormat df=new SimpleDateFormat("yy-MM-dd HH:mm:ss");
+							if(supplierId==1){
+								userService.updateProductNum(newNum,productId);
+							}
+							if(supplierId==2){
+								//向新浪潮退单
+								//向新浪潮下单，传入参数，新浪潮的供应商订单号，及供应商编号
+								req.setAttribute("orderId",order2.getSupplierOrder());//联系人证件类型
+								req.setAttribute("supplierId",supplierId);//联系人证件号码
+								req.getRequestDispatcher("/anotherRefundServlet").forward(req, resp);
+								Integer status = Integer.parseInt((String)req.getAttribute("status"));
+								if(status==0){
+									if("1005".equals((String) req.getAttribute("error_state"))){
+										log.info(df.format(new Date())+"supplierName订单号为"+order2.getSupplierOrder()+"进入退改申请");
+									}
+									if("1006".equals((String) req.getAttribute("error_state"))){
+										//退款失败，更新SupplierOrderState为0，把产品数量加1	yangli 2017-12-11
+										Order order3 = new Order();
+										order3.setProductId(order2.getProductId());
+										order3.setSupplierOrderState(0);//退款成功
+										userService.updateSuplierState(order3);
+										//将供应商订单号告诉给运营的人，这个订单退款失败
+										//模板：supplierName的供应商订单号为supplierOrder的订单支付失败，请尽快处理
+										SMS.toYunYingRefund(supplierName,df.format(new Date()),order2.getSupplierOrder(),(String) req.getAttribute("msg"),"18229028904");
+										SMS.toYunYingRefund(supplierName,df.format(new Date()),order2.getSupplierOrder(),(String) req.getAttribute("msg"),"18991199390");
+										SMS.toYunYingRefund(supplierName,df.format(new Date()),order2.getSupplierOrder(),(String) req.getAttribute("msg"),"15202468686");
+										log.info("新浪潮退款失败："+df.format(new Date())+order2.getSupplierOrder()+"退款失败，原因是："+(String) req.getAttribute("msg"));
+									}
+									
+									
+								}else{
+									//退款成功，更新SupplierOrderState为3，把产品数量加1	yangli 2017-12-11
+									Order order3 = new Order();
+									order3.setProductId(order2.getProductId());
+									order3.setSupplierOrderState(3);//退款成功
+									userService.updateSuplierState(order3);
+									userService.updateProductNum(newNum,productId);
+									log.info(supplierName+df.format(new Date())+order2.getSupplierOrder()+"退款成功");
+								}
+							}
+							//修改状态为3 字符成功
+							userService.updateOrderState(out_trade_no);
+							JSONObject obj=new JSONObject();
+							obj.put("result", "success");
+							obj.put("code", "1");
+							obj.put("message", "退款成功");
+							log.info("返回前端的数据："+obj.toString());
+							resp.getOutputStream().print(obj.toString());
+							/*log.info("{\"msg\":\"返回前端的数据：退款成功\",\"result\":[{}],\"code\":\"\"}");
+						resp.getWriter().write("{\"msg\":\"退款成功\",\"result\":[{}],\"code\":\"\"}");*/
+						}else{
+							req.setAttribute("out_trade_no", response.getOutTradeNo());
+							req.setAttribute("id", id);
+							req.setAttribute("refund_amount", response.getRefundAmount());
+							req.getRequestDispatcher("/alipayRefundServlet").forward(req, resp);
+						}
+					}
+				} else {
+					log.info("请求退款查询失败，支付宝服务器返回的数据："+System.getProperty("line.separator")+"\t\t\t\t"+
+							"alipay_trade_fastpay_refund_query_response{"+System.getProperty("line.separator")+"\t\t\t\t\t"+
+							"code:"+response.getCode()+System.getProperty("line.separator")+"\t\t\t\t\t"+
+							"msg:" +response.getMsg()+System.getProperty("line.separator")+"\t\t\t\t\t"+
+							"sub_code:" +response.getSubCode()+System.getProperty("line.separator")+"\t\t\t\t\t"+
+							"sub_msg:" +response.getSubMsg()+System.getProperty("line.separator")+"\t\t\t\t"+
+							"}");
+					/*
+					 * 调用失败
+					 */
+					//网关错误
+					if(!response.getCode().equals("10000")){
+						JSONObject obj=new JSONObject();
+						obj.put("result", false);
+						obj.put("code", "0");
+						obj.put("responseCode",response.getCode());
+						obj.put("message", "网关错误");
+						log.info("返回前端的参数："+obj.toString());
+						resp.getOutputStream().print(obj.toString());
+						/*log.info("{\"msg\":\"返回前端的数据：网关错误\",\"result\":[{}],\"code\":\""+response.getCode()+"\"}");
+						resp.getWriter().write("{\"msg\":\"网关错误\",\"result\":[{}],\"code\":\""+response.getCode()+"\"}");*/
+					}
+					// 	系统错误
+					if("ACQ.SYSTEM_ERROR".equals(response.getSubCode())){
+						for (int i = 0; i < 1; i++) {
+							doPost(req,resp);
+						}
+						JSONObject obj=new JSONObject();
+						obj.put("result", false);
+						obj.put("code", "0");
+						obj.put("message", "系统错误");
+						log.info("返回前端的参数："+obj.toString());
+						resp.getOutputStream().print(obj.toString());
+						/*log.info("{\"msg\":\"返回前端的数据：系统错误\",\"result\":[{}],\"code\":\"\"}");
+						resp.getWriter().write("{\"msg\":\"系统错误\",\"result\":[{}],\"code\":\"\"}");*/
+					}
+					// 	参数无效
+					if("ACQ.INVALID_PARAMETER".equals(response.getSubCode())){
+						JSONObject obj=new JSONObject();
+						obj.put("result", false);
+						obj.put("code", "0");
+						obj.put("message", "检查请求参数，修改后重新发起请求");
+						log.info("返回前端的参数："+obj.toString());
+						resp.getOutputStream().print(obj.toString());
+						/*log.info("{\"msg\":\"返回前端的数据：检查请求参数，修改后重新发起请求 \",\"result\":[{}],\"code\":\"\"}");
+						resp.getWriter().write("{\"msg\":\"检查请求参数，修改后重新发起请求 \",\"result\":[{}],\"code\":\"\"}");*/
+					}
+					//查询的交易不存在
+					if("ACQ.TRADE_NOT_EXIST".equals(response.getSubCode())){
+						JSONObject obj=new JSONObject();
+						obj.put("result", false);
+						obj.put("code", "0");
+						obj.put("message", "查询的交易不存在");
+						log.info("返回前端的参数："+obj.toString());
+						resp.getOutputStream().print(obj.toString());
+						/*log.info("{\"msg\":\"返回前端的数据：查询的交易不存在\",\"result\":[{}],\"code\":\"\"}");
+						resp.getWriter().write("{\"msg\":\"查询的交易不存在\",\"result\":[{}],\"code\":\"\"}");*/
+					}
+				}
+			} catch (AlipayApiException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+		}else{
+			//本地查询数据库订单表退款申请返回退款成功             
+			JSONObject obj=new JSONObject();
+			obj.put("result", "success");
+			obj.put("code", "1");
+			obj.put("message", "退款成功");
+			log.info("返回前端的数据："+obj.toString());
+			resp.getOutputStream().print(obj.toString());
+			/*log.info("{\"msg\":\"返回前端的数据：本地查询，退款成功\",\"result\":[{}],\"code\":\"\"}");
+			resp.getWriter().write("{\"msg\":\"退款成功\",\"result\":[{}],\"code\":\"\"}");*/
+		}
+		log.info("===============================================退款查询操作结束===============================================");
+	}
+
+}

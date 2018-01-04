@@ -1,0 +1,47 @@
+package cn.nvinfo.dao;
+
+import java.util.List;
+
+import cn.nvinfo.domain.CustomType;
+
+
+/**
+ * 分销商管理以及基础设置中的分销商类别设置
+ * @author yangli 	2017.09.18
+ *
+ */
+public interface CustomTypeDao {
+
+	/*
+	 * 获得总记录数
+	 */
+	int getAllCount();
+
+	/*
+	 * 获得当前页的数据
+	 * 
+	 */
+	List<CustomType> getPageDate(Integer pageIndex, Integer pageSize);
+
+	/*
+	 * 添加
+	 */
+	int add(CustomType customType);
+	
+	/*
+	 * 修改
+	 */
+	int edit(CustomType customType);
+
+	/*
+	 * 根据id查询数据
+	 */
+	CustomType getById(Integer id);
+
+	/*
+	 * 删除
+	 */
+	int delete(Integer id);
+
+
+}

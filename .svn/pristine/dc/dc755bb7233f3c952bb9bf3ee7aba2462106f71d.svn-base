@@ -1,0 +1,51 @@
+package cn.nvinfo.domain;
+/**
+ * 票型类别实体
+ * @author  杨立   2017-09-18
+ *
+ */
+public class TicketType {
+
+	private int id;//编号
+	private String name;//类型      平价票，普通票，活动票 
+	private double condPercent;//加价率
+	private double condYuan;//加价金额
+	
+	public TicketType() {
+		super();
+	}
+
+	public int getId() {
+		return id;
+	}
+
+	public void setId(int id) {
+		this.id = id;
+	}
+
+	public String getName() {
+		return name;
+	}
+
+	public void setName(String name) {
+		this.name = name;
+	}
+
+	public double getCondPercent() {
+		return condPercent;
+	}
+
+	public void setCondPercent(double condPercent) {
+		this.condPercent = condPercent;
+	}
+
+	public double getCondYuan() {
+		return condYuan;
+	}
+
+	public void setCondYuan(double condYuan) {
+		this.condYuan = condYuan;
+	}
+	
+	
+}

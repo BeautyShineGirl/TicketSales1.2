@@ -1,0 +1,250 @@
+package cn.nvinfo.alipay.servlet;
+
+
+import java.io.IOException;
+
+import javax.servlet.ServletException;
+import javax.servlet.http.HttpServlet;
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
+
+import net.sf.json.JSONObject;
+
+import org.apache.log4j.Logger;
+
+
+
+
+import com.alipay.api.AlipayApiException;
+import com.alipay.api.AlipayClient;
+import com.alipay.api.DefaultAlipayClient;
+import com.alipay.api.request.AlipayTradeRefundRequest;
+import com.alipay.api.response.AlipayTradeRefundResponse;
+
+import cn.nvinfo.utils.AlipayConfig;
+
+
+/**
+ * <一句话功能简述>
+ * <功能详细描述>退款		已测试完成
+ * 
+ * @author  Administrator
+ */
+public class AlipayRefundServlet extends HttpServlet {
+	private static Logger log=Logger.getLogger(AlipayQueryServlet.class);
+	private static final long serialVersionUID = 1L;
+
+	@Override
+	protected void doGet(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
+		doPost(req, resp);
+	}
+
+	@Override
+	protected void doPost(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
+		req.setCharacterEncoding("utf-8");
+		resp.setCharacterEncoding("utf-8");
+		String out_trade_no=req.getParameter("out_trade_no");//订单表中的orderId
+		
+		String refund_amount = req.getParameter("refund_amount");//退款金额
+		
+		Integer id=Integer.parseInt(req.getParameter("id"));//获得订单的id 用于在本地数据库查询定的的状态
+		
+		String out_request_no=req.getParameter("out_request_no");//退款请求号 随机数
+		
+		log.info("=====================================AlipayRefundServlet=====================================");
+		log.info("===============================================退款操作开始===============================================");
+		log.info("请求支付宝退款服务器返回成功时提交给alipayRefundQueryServlet退款查询的数据："+System.getProperty("line.separator")+"\t\t\t\t"+
+				"alipay_trade_refund_response{"+System.getProperty("line.separator")+"\t\t\t\t\t"+
+				"\"out_trade_no\":\""+out_trade_no+"\"," +System.getProperty("line.separator")+"\t\t\t\t\t"+
+				"\"out_request_no\":"+out_request_no+"" +System.getProperty("line.separator")+"\t\t\t\t"+
+				"\"id\":"+id+"" +System.getProperty("line.separator")+"\t\t\t\tt\t\t\t"+
+				" }");
+		//公共参数
+		AlipayClient alipayClient = new DefaultAlipayClient("https://openapi.alipay.com/gateway.do",
+				AlipayConfig.app_id,AlipayConfig.private_key,"json","UTF-8",AlipayConfig.alipay_public_key,"RSA2");
+		log.info("公共参数："+"https://openapi.alipay.com/gateway.do"+
+				", app_id="+AlipayConfig.app_id+System.getProperty("line.separator")+"\t\t\t\t"
+				+", private_key="+AlipayConfig.private_key+"json"+"UTF-8"+System.getProperty("line.separator")+"\t\t\t\t"
+				+", alipay_public_key="+AlipayConfig.alipay_public_key+"RSA2");
+		AlipayTradeRefundRequest request = new AlipayTradeRefundRequest();
+		request.setBizContent("{" +
+				"\"out_trade_no\":\""+out_trade_no+"\"," +
+				"\"refund_amount\":"+refund_amount+"" +
+				/*"\"out_request_no\":\""+out_request_no+"\"" +*/
+				"  }");
+		log.info("请求支付宝退款时提交服务器的数据："+System.getProperty("line.separator")+"\t\t\t\t"+
+				"请求支付宝退款时提交服务器的数据{"+System.getProperty("line.separator")+"\t\t\t\t\t"+
+				"\"out_trade_no\":\""+out_trade_no+"\"," +System.getProperty("line.separator")+"\t\t\t\t\t"+
+				"\"refund_amount\":"+refund_amount+"" +System.getProperty("line.separator")+"\t\t\t\t"+
+				"\"out_request_no\":\""+out_request_no+"\"" +System.getProperty("line.separator")+"\t\t\t\t"+
+				" }");
+		try {
+			AlipayTradeRefundResponse response = alipayClient.execute(request);
+			//String out_request_no = StringUtil.getRandomString(32);
+			if(response.isSuccess()){
+				log.info("请求支付宝退款服务器返回成功时提交给alipayRefundQueryServlet退款查询的数据："+System.getProperty("line.separator")+"\t\t\t\t"+
+						"alipay_trade_refund_response{"+System.getProperty("line.separator")+"\t\t\t\t\t"+
+						"code:"+response.getCode()+System.getProperty("line.separator")+"\t\t\t\t\t"+
+						"msg:" +response.getMsg()+System.getProperty("line.separator")+"\t\t\t\t\t"+
+						"out_trade_no:"+out_trade_no+"\"," +System.getProperty("line.separator")+"\t\t\t\t\t"+
+						"out_request_no:"+out_request_no+"" +System.getProperty("line.separator")+"\t\t\t\t"+
+						"id:"+id+"" +System.getProperty("line.separator")+"\t\t\t\t"+
+						" }");
+				req.setAttribute("out_trade_no", out_trade_no);
+				req.setAttribute("id", id);
+				req.setAttribute("out_request_no",out_request_no );//退款请求号
+				req.getRequestDispatcher("/alipayRefundQueryServlet").forward(req, resp);
+
+			} else {
+				log.info("请求退款失败，支付宝服务器返回的数据："+System.getProperty("line.separator")+"\t\t\t\t"+
+						"alipay_trade_refund_response{"+System.getProperty("line.separator")+"\t\t\t\t\t"+
+						"code:"+response.getCode()+System.getProperty("line.separator")+"\t\t\t\t\t"+
+						"msg:" +response.getMsg()+System.getProperty("line.separator")+"\t\t\t\t\t"+
+						"sub_code:" +response.getSubCode()+System.getProperty("line.separator")+"\t\t\t\t\t"+
+						"sub_msg:" +response.getSubMsg()+System.getProperty("line.separator")+"\t\t\t\t"+
+						"}");
+				//网关错误
+				if(!response.getCode().equals("10000")){
+					JSONObject obj=new JSONObject();
+					obj.put("result", false);
+					obj.put("code", "0");
+					obj.put("responseCode",response.getCode());
+					obj.put("message", "网关错误");
+					log.info("返回前端的参数："+obj.toString());
+					resp.getOutputStream().print(obj.toString());
+					/*log.info("{\"msg\":\"返回前端数据：(网关错误)系统错误\",\"result\":[{}],\"code\":\""+response.getCode()+"\"}");
+					resp.getWriter().write("{\"msg\":\"系统错误\",\"result\":[{}],\"code\":\""+response.getCode()+"\"}");*/
+				}
+				//系统错误
+				if("ACQ.SYSTEM_ERROR".equals(response.getSubMsg())){
+					for (int i = 0; i < 1; i++) {
+						doPost(req,resp);
+					}
+					JSONObject obj=new JSONObject();
+					obj.put("result", false);
+					obj.put("code", "0");
+					obj.put("message", "系统错误");
+					log.info("返回前端的参数："+obj.toString());
+					resp.getOutputStream().print(obj.toString());
+					/*log.info("{\"msg\":\"返回前端数据：系统错误\",\"result\":[{}],\"code\":\""+response.getCode()+"\"}");
+					resp.getWriter().write("{\"msg\":\"系统错误\",\"result\":[{}],\"code\":\"\"}");*/
+				}
+				//参数无效
+				if("ACQ.INVALID_PARAMETER".equals(response.getSubMsg())){
+					JSONObject obj=new JSONObject();
+					obj.put("result", false);
+					obj.put("code", "0");
+					obj.put("message", "请求参数有错，重新检查请求后，再调用退款");
+					log.info("返回前端的参数："+obj.toString());
+					resp.getOutputStream().print(obj.toString());
+					/*log.info("{\"msg\":\"返回前端数据：请求参数有错，重新检查请求后，再调用退款\",\"result\":[{}],\"code\":\"\"}");
+					resp.getWriter().write("{\"msg\":\"请求参数有错，重新检查请求后，再调用退款\",\"result\":[{}],\"code\":\"\"}");*/
+				}
+				//卖家余额不足
+				if("ACQ.SELLER_BALANCE_NOT_ENOUGH".equals(response.getSubMsg())){
+					JSONObject obj=new JSONObject();
+					obj.put("result", false);
+					obj.put("code", "0");
+					obj.put("message", "卖家余额不足");
+					log.info("返回前端的参数："+obj.toString());
+					resp.getOutputStream().print(obj.toString());
+					/*log.info("{\"msg\":\"返回前端数据：卖家余额不足\",\"result\":[{}],\"code\":\"\"}");
+					resp.getWriter().write("{\"msg\":\"卖家余额不足\",\"result\":[{}],\"code\":\"\"}");*/
+				}
+				//退款金额超限
+				if("ACQ.REFUND_AMT_NOT_EQUAL_TOTAL".equals(response.getSubMsg())){
+					JSONObject obj=new JSONObject();
+					obj.put("result", false);
+					obj.put("code", "0");
+					obj.put("message", "退款金额超限");
+					log.info("返回前端的参数："+obj.toString());
+					resp.getOutputStream().print(obj.toString());
+					/*log.info("{\"msg\":\"返回前端数据：退款金额超限\",\"result\":[{}],\"code\":\"\"}");
+					resp.getWriter().write("{\"msg\":\"退款金额超限\",\"result\":[{}],\"code\":\"\"}");*/
+				}
+				// 	请求退款的交易被冻结
+				if("ACQ.REASON_TRADE_BEEN_FREEZEN".equals(response.getSubMsg())){
+					JSONObject obj=new JSONObject();
+					obj.put("result", false);
+					obj.put("code", "0");
+					obj.put("message", "请求退款的交易被冻结");
+					log.info("返回前端的参数："+obj.toString());
+					resp.getOutputStream().print(obj.toString());
+					/*log.info("{\"msg\":\"返回前端数据：请求退款的交易被冻结\",\"result\":[{}],\"code\":\"\"}");
+					resp.getWriter().write("{\"msg\":\"请求退款的交易被冻结\",\"result\":[{}],\"code\":\"\"}");*/
+				}
+				//交易不存在	检查请求中的交易号和商户订单号是否正确，确认后重新发起 
+				if("ACQ.TRADE_NOT_EXIST".equals(response.getSubMsg())){
+					JSONObject obj=new JSONObject();
+					obj.put("result", false);
+					obj.put("code", "0");
+					obj.put("message", "交易不存在");
+					log.info("返回前端的参数："+obj.toString());
+					resp.getOutputStream().print(obj.toString());
+					/*log.info("{\"msg\":\"返回前端数据：交易不存在\",\"result\":[{}],\"code\":\"\"}");
+					resp.getWriter().write("{\"msg\":\"交易不存在\",\"result\":[{}],\"code\":\"\"}");*/
+				}
+				//交易已完结
+				if("ACQ.TRADE_HAS_FINISHED".equals(response.getSubMsg())){
+					JSONObject obj=new JSONObject();
+					obj.put("result", false);
+					obj.put("code", "0");
+					obj.put("message", "交易已完结");
+					log.info("返回前端的参数："+obj.toString());
+					resp.getOutputStream().print(obj.toString());
+					/*log.info("{\"msg\":\"返回前端数据：交易已完结\",\"result\":[{}],\"code\":\"\"}");
+					resp.getWriter().write("{\"msg\":\"交易已完结\",\"result\":[{}],\"code\":\"\"}");*/
+				}
+				//交易状态非法	查询交易，确认交易是否已经付款 
+				if("ACQ.TRADE_STATUS_ERROR".equals(response.getSubMsg())){
+					JSONObject obj=new JSONObject();
+					obj.put("result", false);
+					obj.put("code", "0");
+					obj.put("message", "交易状态非法");
+					log.info("返回前端的参数："+obj.toString());
+					resp.getOutputStream().print(obj.toString());
+					/*log.info("{\"msg\":\"返回前端数据：交易状态非法\",\"result\":[{}],\"code\":\"\"}");
+					resp.getWriter().write("{\"msg\":\"交易状态非法\",\"result\":[{}],\"code\":\"\"}");*/
+				}
+				//不一致的请求
+				if("ACQ.DISCORDANT_REPEAT_REQUEST".equals(response.getSubMsg())){
+					JSONObject obj=new JSONObject();
+					obj.put("result", false);
+					obj.put("code", "0");
+					obj.put("message", "不一致的请求");
+					log.info("返回前端的参数："+obj.toString());
+					resp.getOutputStream().print(obj.toString());
+					/*log.info("{\"msg\":\"返回前端数据：不一致的请求\",\"result\":[{}],\"code\":\"\"}");
+					resp.getWriter().write("{\"msg\":\"不一致的请求\",\"result\":[{}],\"code\":\"\"}");*/
+				}
+				//退款金额无效
+				if("ACQ.REASON_TRADE_REFUND_FEE_ERR".equals(response.getSubMsg())){
+					JSONObject obj=new JSONObject();
+					obj.put("result", false);
+					obj.put("code", "0");
+					obj.put("message", "退款金额无效");
+					log.info("返回前端的参数："+obj.toString());
+					resp.getOutputStream().print(obj.toString());
+					/*log.info("{\"msg\":\"返回前端数据：退款金额无效\",\"result\":[{}],\"code\":\"\"}");
+					resp.getWriter().write("{\"msg\":\"退款金额无效\",\"result\":[{}],\"code\":\"\"}");*/
+				}
+				// 	当前交易不允许退款	检查当前交易的状态是否为交易成功状态以及签约的退款属性是否允许退款，确认后，重新发起请求 
+				if("ACQ.TRADE_NOT_ALLOW_REFUND".equals(response.getSubMsg())){
+					JSONObject obj=new JSONObject();
+					obj.put("result", false);
+					obj.put("code", "0");
+					obj.put("message", "当前交易不允许退款");
+					log.info("返回前端的参数："+obj.toString());
+					resp.getOutputStream().print(obj.toString());
+					/*log.info("{\"msg\":\"返回前端数据：当前交易不允许退款\",\"result\":[{}],\"code\":\"\"}");
+					resp.getWriter().write("{\"msg\":\"当前交易不允许退款\",\"result\":[{}],\"code\":\"\"}");*/
+				}
+			}
+			log.info("===============================================退款操作结束===============================================");
+		} catch (AlipayApiException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+	}
+
+}

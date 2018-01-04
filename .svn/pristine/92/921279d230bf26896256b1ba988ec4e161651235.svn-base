@@ -1,0 +1,24 @@
+package cn.nvinfo.domain;
+/**
+ * 价格日历表 用于返回给页面的数据封装
+ * @author 杨立	2017-11-08
+ *
+ */
+public class Calendar {
+
+	private String timeDate;//日期
+	private String price;//价格
+	public String getTimeDate() {
+		return timeDate;
+	}
+	public void setTimeDate(String timeDate) {
+		this.timeDate = timeDate;
+	}
+	public String getPrice() {
+		return price;
+	}
+	public void setPrice(String price) {
+		this.price = price;
+	}
+	
+}

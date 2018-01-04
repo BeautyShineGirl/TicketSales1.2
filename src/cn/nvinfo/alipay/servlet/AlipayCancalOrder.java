@@ -1,0 +1,173 @@
+package cn.nvinfo.alipay.servlet;
+
+import java.io.IOException;
+
+import javax.servlet.ServletException;
+import javax.servlet.http.HttpServlet;
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
+
+import net.sf.json.JSONObject;
+
+import org.apache.log4j.Logger;
+import org.springframework.web.context.WebApplicationContext;
+import org.springframework.web.context.support.WebApplicationContextUtils;
+
+import cn.nvinfo.domain.Order;
+import cn.nvinfo.service.UserService;
+import cn.nvinfo.utils.AlipayConfig;
+
+import com.alipay.api.AlipayApiException;
+import com.alipay.api.AlipayClient;
+import com.alipay.api.DefaultAlipayClient;
+import com.alipay.api.domain.AlipayTradePrecreateModel;
+import com.alipay.api.request.AlipayTradePrecreateRequest;
+import com.alipay.api.response.AlipayTradePrecreateResponse;
+
+
+/**
+ * 撤销支付宝订单
+ * @author 杨立
+ *
+ */
+public class AlipayCancalOrder extends HttpServlet {
+	private static Logger log=Logger.getLogger(AlipayPayServlet.class);
+	private static final long serialVersionUID = 1L;
+	@Override
+	protected void doGet(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
+		doPost(req, resp);
+	}
+
+	@Override
+	protected void doPost(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
+		req.setCharacterEncoding("utf-8");
+		resp.setCharacterEncoding("utf-8");
+		//获取spring容器中的service
+		WebApplicationContext  ctx= WebApplicationContextUtils.getWebApplicationContext(this.getServletContext());
+		UserService userService = (UserService) ctx.getBean("userService",UserService.class);
+		
+		String out_trade_no = (String) req.getAttribute("out_trade_no");//商户订单号
+		log.info("=====================================AlipayCancalOrder=====================================");
+		log.info("===============================================撤销订单操作开始===============================================");
+		log.info("请求alipayCancalOrder时传过来的参数：out_trade_no="+out_trade_no);
+		//公共参数
+		AlipayClient alipayClient = new DefaultAlipayClient("	https://openapi.alipay.com/gateway.do",
+				AlipayConfig.app_id,AlipayConfig.private_key,"json","UTF-8",AlipayConfig.alipay_public_key,"RSA2");
+		
+		log.info("公共参数："+"https://openapi.alipay.com/gateway.do"+
+				", app_id="+AlipayConfig.app_id+System.getProperty("line.separator")+"\t\t\t\t"
+				+", private_key="+AlipayConfig.private_key+"json"+"UTF-8"+System.getProperty("line.separator")+"\t\t\t\t"
+				+", alipay_public_key="+AlipayConfig.alipay_public_key+"RSA2");
+		AlipayTradePrecreateRequest request = new AlipayTradePrecreateRequest();
+		AlipayTradePrecreateModel model=new AlipayTradePrecreateModel();
+		request.setBizModel(model);
+		model.setOutTradeNo(out_trade_no);//订单号
+		log.info("请求支付宝服务器撤销订单接口传的参数：out_trade_no="+out_trade_no);
+
+		AlipayTradePrecreateResponse response;
+		try {
+			response = alipayClient.execute(request);
+			if(response.isSuccess()){
+				log.info("支付宝服务器撤销订单成功返回的数据："+System.getProperty("line.separator")+"\t\t\t\t"+
+						"alipay_trade_cancel_response{"+System.getProperty("line.separator")+"\t\t\t\t\t"+
+				        "code:"+response.getCode()+System.getProperty("line.separator")+"\t\t\t\t\t"+
+				        "msg:" +response.getMsg()+System.getProperty("line.separator")+"\t\t\t\t\t"+
+				        "out_trade_no:" +response.getOutTradeNo()+System.getProperty("line.separator")+"\t\t\t\t\t"+
+						" }");
+				//把订单状态改成4 为无效订单,原因是订单被撤销
+				Order order = new Order();
+				order.setOrderState(4);//将订单表中的orderState改为0，证明，订单已支付成功
+				order.setTransaction_id("无");//保存微信订单号
+				order.setOrderId(response.getOutTradeNo());//商品订单号order表中的id
+				order.setReason("订单被撤销");//支付失败的原因
+				userService.updateOrder(order);//
+				/*
+				 * 调用成功
+				 */
+				JSONObject obj=new JSONObject();
+				obj.put("result", true);
+				obj.put("code", "1");
+				obj.put("message", "订单已撤销");
+				log.info("返回前端的数据："+obj.toString());
+				resp.getOutputStream().print(obj.toString());
+				/*log.info("{\"msg\":\"返回前端数据：订单已撤销\",\"result\":[{}],\"code\":\"\"}");
+				resp.getWriter().write("{\"msg\":\"订单已撤销\",\"result\":[{}],\"code\":\"\"}");*/
+			} else {
+				log.info("支付宝服务器撤销订单失败返回的数据："+System.getProperty("line.separator")+"\t\t\t\t"+
+						"alipay_trade_cancel_response"+System.getProperty("line.separator")+"\t\t\t\t\t"+
+						"code:"+response.getCode()+System.getProperty("line.separator")+"\t\t\t\t\t"+
+						"msg:" +response.getMsg()+System.getProperty("line.separator")+"\t\t\t\t\t"+
+						"sub_code:" +response.getSubCode()+System.getProperty("line.separator")+"\t\t\t\t\t"+
+						"sub_msg:" +response.getSubMsg()+System.getProperty("line.separator")+"\t\t\t\t"+
+						"}");
+				/*
+				 * 调用失败
+				 */
+				//网关错误
+				if(!response.getCode().equals("10000")){
+					JSONObject obj=new JSONObject();
+					obj.put("result", false);
+					obj.put("code", "0");
+					obj.put("responseCode",response.getCode());
+					obj.put("message", "网关错误");
+					log.info("返回前端的参数："+obj.toString());
+					resp.getOutputStream().print(obj.toString());
+					/*log.info("{\"msg\":\"返回前端数据：(网关错误)系统错误\",\"result\":[{}],\"code\":\"\"}");
+					resp.getWriter().write("{\"msg\":\"系统错误\",\"result\":[{}],\"code\":\"\"}");*/
+				}
+				// 	系统错误
+				if("ACQ.SYSTEM_ERROR".equals(response.getSubCode())){
+					for (int i = 0; i < 1; i++) {
+						doPost(req,resp);
+					}
+					JSONObject obj=new JSONObject();
+					obj.put("result", false);
+					obj.put("code", "0");
+					obj.put("message", "系统错误");
+					log.info("返回前端的参数："+obj.toString());
+					resp.getOutputStream().print(obj.toString());
+					/*log.info("{\"msg\":\"返回前端数据：系统错误\",\"result\":[{}],\"code\":\"\"}");
+					resp.getWriter().write("{\"msg\":\"系统错误\",\"result\":[{}],\"code\":\"\"}");*/
+				}
+				//参数无效
+				if("ACQ.INVALID_PARAMETER".equals(response.getSubCode())){
+					JSONObject obj=new JSONObject();
+					obj.put("result", false);
+					obj.put("code", "0");
+					obj.put("message", "参数无效");
+					log.info("返回前端的参数："+obj.toString());
+					resp.getOutputStream().print(obj.toString());
+					/*log.info("{\"msg\":\"返回前端数据：参数无效\",\"result\":[{}],\"code\":\"\"}");
+					resp.getWriter().write("{\"msg\":\"参数无效\",\"result\":[{}],\"code\":\"\"}");*/
+				}
+				//商户的支付宝账户中无足够的资金进行撤销
+				if("ACQ.SELLER_BALANCE_NOT_ENOUGH".equals(response.getSubCode())){
+					JSONObject obj=new JSONObject();
+					obj.put("result", false);
+					obj.put("code", "0");
+					obj.put("message", "商户的支付宝账户中无足够的资金进行撤销");
+					log.info("返回前端的参数："+obj.toString());
+					resp.getOutputStream().print(obj.toString());
+					/*log.info("{\"msg\":\"返回前端数据：商户的支付宝账户中无足够的资金进行撤销\",\"result\":[{}],\"code\":\"\"}");
+					resp.getWriter().write("{\"msg\":\"商户的支付宝账户中无足够的资金进行撤销\",\"result\":[{}],\"code\":\"\"}");*/
+				}
+				//当前交易被冻结，不允许进行撤销
+				if("ACQ.REASON_TRADE_BEEN_FREEZEN".equals(response.getSubCode())){
+					JSONObject obj=new JSONObject();
+					obj.put("result", false);
+					obj.put("code", "0");
+					obj.put("message", "当前交易被冻结，不允许进行撤销");
+					log.info("返回前端的参数："+obj.toString());
+					resp.getOutputStream().print(obj.toString());
+					/*log.info("{\"msg\":\"返回前端数据：当前交易被冻结，不允许进行撤销\",\"result\":[{}],\"code\":\"\"}");
+					resp.getWriter().write("{\"msg\":\"当前交易被冻结，不允许进行撤销\",\"result\":[{}],\"code\":\"\"}");*/
+				}
+
+			}
+			log.info("===============================================撤销订单操作结束===============================================");
+		} catch (AlipayApiException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+	}
+}

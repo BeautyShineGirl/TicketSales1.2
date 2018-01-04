@@ -1,0 +1,151 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="product">
+  
+  
+  	<!-- 获得总记录数 	杨立	2017-09-26	-->
+  	<select id="getAllCount" resultType="int">
+  		select count(*) from product p 
+  		left join viewMessage v on v.id=p.view_id
+		left join supplier s on s.id=p.supplier_id
+		left join priority pr on pr.id=p.priority_id
+  		<include refid="getSql"></include> 
+  	</select>
+  
+  
+  	<!-- 获得当前页的数据 	杨立	2017-09-26-->
+  	<select id="getPageDate" resultType="cn.nvinfo.tools.ProductList">
+	select p.id,p.name,v.name viewName,v.type viewType,s.name supplierName,p.ticketType,p.endPrice,p.marketPrice,pr.name priorityType,p.isSale from product p
+	left join viewMessage v on v.id=p.view_id
+	left join supplier s on s.id=p.supplier_id
+	left join priority pr on pr.id=p.priority_id
+  		 <include refid="getSql"></include>  order by id asc limit #{pageIndex},#{pageSize}
+  	</select>
+  	<sql id="getSql">
+  		<where>
+  			1=1
+  		</where>
+		<if test=" id !=null and id!=''">
+			<choose>
+				<!-- 大于 -->
+				<when test="logic==0">
+						and p.id &gt;${id}
+				</when>
+				<!-- 小于-->
+				<when test="logic==1">
+						and p.id &lt;${id}
+				</when>
+				<!-- 等于 -->
+				<when test="logic==2">
+						and p.id =${id}
+				</when>
+				<!-- 大于 等于-->
+				<when test="logic==3">
+						and p.id &gt;=${id}
+				</when>
+				<!-- 小于等于 -->
+				<when test="logic==4">
+						and p.id &lt;= ${id}
+				</when>
+				<!-- 不等于 -->
+				<when test="logic==5">
+						and p.id !=${id}
+				</when>
+				<otherwise>
+						and p.id like '%${id}%'
+				</otherwise>
+			</choose>
+		</if>
+		<if test=" endPrice !=null and endPrice!=''">
+				and p.endPrice like '%${endPrice}%'
+		</if>
+		<if test=" name !=null and name!=''">
+				and p.name like '%${name}%'
+		</if>
+		<if test=" viewName !=null and viewName!=''">
+				and v.name like '%${viewName}%'
+		</if>
+		<if test=" viewType!=null and viewType!=''">
+				and v.type like '%${viewType}%'
+		</if>
+  	</sql>
+  
+  	<!-- 从字典中获得景区门票类型  杨立   2017-09-25-->
+  	<select id="getType" resultType="java.lang.String">
+  		select value from dictionary where sort=2
+  	</select>
+  	
+  	<!-- 获得票型	杨立   2017-09-25-->
+  	<select id="ticketType" resultType="java.lang.String">
+  		select name from ticketType
+  	</select>
+ 	<!-- 根据priorityId获得优先级类别的名字	yangli	2017-10-19-->
+  	<select id="getByProId" resultType="java.lang.String">
+  		select name from priority
+  	</select>
+	 <!--  从字典中是否可退	杨立   2017-09-25  -->
+  	<select id="getIsCancel" resultType="java.lang.String">
+  		select value from dictionary where sort=3
+  	</select>
+  	<!--  获得优先级类别和优先级	杨立   2017-09-25  -->
+  	<select id="getPriority" resultType="cn.nvinfo.domain.Priority">
+  		select * from priority
+  	</select>
+  	<!--  获得优先级类别和优先级	杨立   2017-09-25  -->
+  	<select id="getCustom" resultType="java.lang.String">
+  		select name from custom
+  	</select>
+  	<!--  所属景区 	杨立   2017-09-25 -->
+  	<select id="getView" resultType="cn.nvinfo.tools.INList">
+  		select id,name from viewMessage
+  	</select>
+  	
+  	 <!--  从字典中 返回景区类别	杨立   2017-10-19  -->
+  	<select id="getViewType" resultType="java.lang.String">
+  		select value from dictionary where sort=9
+  	</select>
+  	<!-- 供应商 	杨立   2017-09-25 -->
+  	<select id="getSupplier" resultType="cn.nvinfo.tools.INList">
+  		select id,name from supplier
+  	</select>
+
+  	<!-- 添加  杨立   2017-09-25-->
+  	<insert id="save" parameterType="cn.nvinfo.domain.Product" useGeneratedKeys="true">
+  		insert into product (view_id,supplier_id,ticketType,priority_id,customName, name,endPrice,marketPrice,isSale,startTime,
+  		endTime,dailySale,num,orderTime,isCancel,type,notice,costInside,costOutside,remark,userType,priorityType,method) 
+  		values(#{viewId},#{supplierId},#{ticketType},#{priorityId},#{customName},#{name},#{endPrice},#{marketPrice},
+  		#{isSale},#{startTime},#{endTime},#{dailySale},#{num},#{orderTime},#{isCancel},#{type},#{notice},#{costInside},
+  		#{costOutside},#{remark},#{userType},#{priorityType},#{method})
+  	</insert>
+  	
+  	<!-- 修改的数据回显   	杨立	2017-09-25 -->
+  	<select id="getById" resultType="cn.nvinfo.domain.Product">
+  		select  id,view_id as viewId,supplier_id as supplierId,ticketType,priority_id,customName, name,endPrice,marketPrice,isSale,startTime,
+  		endTime,dailySale,num,orderTime,isCancel,type,notice,costInside,costOutside,remark,userType,priorityType,method from product where id=#{id}
+  	</select>
+  	<!-- 根据id获得景区名字 -->
+  	<select id="getViewName" resultType="java.lang.String">
+  		select name from viewMessage where id=#{viewId}
+  	</select>
+  	<select id="getSupplierName" resultType="java.lang.String">
+  		select name from supplier where id=#{supplierId}
+  	</select>
+  		<!-- 修改 	杨立	2017-09-25-->
+  	<update id="edit" parameterType="cn.nvinfo.domain.Product" useGeneratedKeys="true">
+  		update product set view_id=#{viewId},supplier_id=#{supplierId},ticketType=#{ticketType},priority_id=#{priorityId},customName=#{customName},
+  		name=#{name},endPrice=#{endPrice},marketPrice=#{marketPrice},isSale=#{isSale},startTime=#{startTime},
+  		endTime=#{endTime},dailySale=#{dailySale},num=#{num},orderTime=#{orderTime},isCancel=#{isCancel},type=#{type},
+  		notice=#{notice},costInside=#{costInside},costOutside=#{costOutside},remark=#{remark},userType=#{userType},
+  		priorityType=#{priorityType},method=#{method} where id=#{id} 
+  	</update>
+  	<!-- 再删除产品之前，先查询该产品是否有订单，若有，则返回删除失败	yangli	2017-10-19-->
+  	<select id="getOrder" resultType="int">
+		select count(*) from orderTable where product_id=#{id}
+  	</select>
+  	<!-- 删除   杨立   2017-09-20	-->
+  	<delete id="delete" parameterType="cn.nvinfo.domain.Product">
+  		delete from product where id=#{id}
+  	</delete>
+</mapper>

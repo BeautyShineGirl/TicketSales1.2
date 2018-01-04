@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="user">
+  	<!-- 用户登陆  杨立  2017-10-16 -->
+  	<select id="getUser" resultType="cn.nvinfo.domain.Custom">
+		select * from user where userNasme=#{userNasme} and password = #{password}
+  	</select>
+  	
+  	
+  	<!-- 微信支付	杨立	2017-10-18 -->
+  	<!-- 查询订单 	杨立	2017-10-18 -->
+  	<select id="getOrder" resultType="cn.nvinfo.domain.Order">
+		select * from orderTable where orderId=#{out_trade_no}
+  	</select>
+  	
+  	<!-- *获得订单的商品描述	yangli 	2017-10-18	  例如冰雪大世界成人票（产品名字加票型） -->
+  	<select id="getBody" resultType="java.lang.String">
+		select p.name,p.ticketType from orderTable o 
+		left join product p on o.product_id = p.id
+		where o.orderId = #{out_trade_no}
+  	</select>
+  	<!-- 获得订单的总金额 	杨立	2017-10-18 -->
+  	<select id="getTotalFee" resultType="java.lang.String">
+		select price from orderTable where orderId=#{out_trade_no}
+  	</select>
+  	<!-- 添加订单到数据库	YANGLI 2017-10-18-->
+  	<insert id="addOrder" parameterType="cn.nvinfo.domain.Order" useGeneratedKeys="true">
+  		insert into orderTable (id,product_id,cust_id,supplier_id,view_id,orderId,productName,custName,custOrder,supplierOrder,ispay,orderState,payId,
+  		orderNumber,unitPrice,price,createDate,useDate,orderCode,userPhone,userName,idCard,remark) 
+  		values(#{id},#{productId},#{customId},#{supplierId},#{viewId},#{orderId},#{productName},#{custName},#{custOrder},#{supplierOrder},#{ispay},
+  		#{orderState},#{payId},#{orderNumber},#{unitPrice},#{price},#{createDate},#{useDate},#{orderCode},#{userPhone},#{userName},#{idCard},#{remark})
+  	</insert>
+  	
+</mapper>

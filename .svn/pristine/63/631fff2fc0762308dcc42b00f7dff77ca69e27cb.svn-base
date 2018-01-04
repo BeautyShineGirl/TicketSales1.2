@@ -1,0 +1,349 @@
+package cn.nvinfo.alipay.servlet;
+
+import java.io.File;
+import java.io.IOException;
+import java.util.Date;
+
+import javax.servlet.ServletException;
+import javax.servlet.http.HttpServlet;
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
+
+import net.sf.json.JSONObject;
+
+import org.apache.log4j.Logger;
+import org.springframework.web.context.WebApplicationContext;
+import org.springframework.web.context.support.WebApplicationContextUtils;
+
+import cn.nvinfo.domain.Order;
+import cn.nvinfo.service.UserService;
+import cn.nvinfo.utils.AlipayConfig;
+import cn.nvinfo.utils.QRCodeUtil;
+import cn.nvinfo.utils.StringUtil;
+
+import com.alipay.api.AlipayApiException;
+import com.alipay.api.AlipayClient;
+import com.alipay.api.DefaultAlipayClient;
+import com.alipay.api.domain.AlipayTradePrecreateModel;
+import com.alipay.api.request.AlipayTradePrecreateRequest;
+import com.alipay.api.response.AlipayTradePrecreateResponse;
+
+/**
+ * 支付宝支付	生成二维码
+ * @author 杨立	2017-10-27
+ *
+ */
+public class AlipayPayServlet extends HttpServlet {
+	private static Logger log=Logger.getLogger(AlipayPayServlet.class);
+	private static final long serialVersionUID = 1L;
+
+	@Override
+	protected void doGet(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
+		doPost(req, resp);
+	}
+
+	@Override
+	protected void doPost(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
+		req.setCharacterEncoding("utf-8");
+		resp.setCharacterEncoding("utf-8");
+		//获取spring容器中的service
+		WebApplicationContext  ctx= WebApplicationContextUtils.getWebApplicationContext(this.getServletContext());
+		UserService userService = (UserService) ctx.getBean("userService",UserService.class);
+
+
+		String out_trade_no =(String) req.getAttribute("out_trade_no");//商户订单号
+		String total_amount =(String) req.getAttribute("total_amount");
+		String subject =(String) req.getAttribute("subject");//订单标题
+		log.info("userAction传过来的参数： 商户订单号orderId："+out_trade_no+",  total_amount总金额:"+total_amount+",  subject订单标题:"+subject);
+		log.info("公共参数："+"https://openapi.alipay.com/gateway.do"+
+				", app_id="+AlipayConfig.app_id+System.getProperty("line.separator")+"\t\t\t\t"
+				+", private_key="+AlipayConfig.private_key+"json"+"UTF-8"+System.getProperty("line.separator")+"\t\t\t\t"
+				+", alipay_public_key="+AlipayConfig.alipay_public_key+"RSA2");
+		//公共参数
+		AlipayClient alipayClient = new DefaultAlipayClient("https://openapi.alipay.com/gateway.do",
+				AlipayConfig.app_id,AlipayConfig.private_key,"json","UTF-8",AlipayConfig.alipay_public_key,"RSA2");
+		AlipayTradePrecreateRequest request = new AlipayTradePrecreateRequest();
+		AlipayTradePrecreateModel model=new AlipayTradePrecreateModel();
+		request.setBizModel(model);
+		request.setNotifyUrl(AlipayConfig.notify_url);
+		model.setOutTradeNo(out_trade_no);//订单号
+		model.setTotalAmount(total_amount);//订单总金额
+		model.setSubject(subject);//订单标题
+		model.setTimeoutExpress("1m");//该笔订单允许的最晚付款时间，逾期将关闭交易。
+		log.info("发送给支付宝服务器的数据：通知地址："+AlipayConfig.notify_url+", 订单号："+model.getOutTradeNo()+", 订单总金额："+model.getTotalAmount()+", 订单标题："+model.getSubject()+", 该笔订单允许的最晚付款时间:"+model.getTimeoutExpress());
+
+		AlipayTradePrecreateResponse response;
+		try {
+			response = alipayClient.execute(request);
+			if(response.isSuccess()){
+				log.info("请求支付成功生成二维码,支付宝服务器返回的数据："+System.getProperty("line.separator")+"\t\t\t\t"+
+						"alipay_trade_precreate_response{"+System.getProperty("line.separator")+"\t\t\t\t\t"+
+						"code:"+response.getCode()+System.getProperty("line.separator")+"\t\t\t\t\t"+
+						"msg:" +response.getMsg()+System.getProperty("line.separator")+"\t\t\t\t\t"+
+						"out_trade_no:" +response.getOutTradeNo()+System.getProperty("line.separator")+"\t\t\t\t\t"+
+						"qr_code:" +response.getQrCode()+System.getProperty("line.separator")+"\t\t\t\t"+
+						" }");
+				String picPath = StringUtil.getRandomString(4);
+				String str = String.valueOf(new Date().getTime());
+				String path=req.getSession().getServletContext().getRealPath("upload/erWeiMa_alipay/")+File.separator;
+				String file=path+str+picPath+".png";
+				//生成二维码
+				QRCodeUtil.QRCode(response.getQrCode(), 300, 300, "png",file );
+				JSONObject obj=new JSONObject();
+				obj.put("result", true);
+				obj.put("code", "1");
+				obj.put("isPay", "支付宝支付");
+				obj.put("message", "获取成功！");
+				//正式服务器
+				obj.put("path", "http://service.nvinfo.cn:8080"+req.getContextPath()+"/upload/erWeiMa_alipay/"+str+picPath+".png");
+				//obj.put("path", "http://test.elvmedia.cn:8080"+req.getContextPath()+"/upload/erWeiMa_alipay/"+str+picPath+".png");
+				//obj.put("path", "http://192.168.1.109:8080"+req.getContextPath()+"/upload/erWeiMa_alipay/"+str+picPath+".png");
+				resp.getOutputStream().print(obj.toString());
+				log.info("请求支付返回前端的参数："+obj.toString());
+				log.info("支付宝成功生成二维码返回前端的路径："+"http://service.nvinfo.cn:8080"+req.getContextPath()+"/upload/erWeiMa_alipay/"+str+picPath+".png");
+				//log.info("支付宝成功生成二维码返回前端的路径："+"http://192.168.1.109:8080"+req.getContextPath()+"/upload/erWeiMa_alipay/"+str+picPath+".png");
+				//log.info("支付宝成功生成二维码返回前端的路径："+"http://test.elvmedia.cn:8080"+req.getContextPath()+"/upload/erWeiMa_alipay/"+str+picPath+".png");
+			} else {
+				//把订单状态改成4 为无效订单,原因是生成二维码失败
+				Order order = new Order();
+				order.setOrderState(4);//将订单表中的orderState改为0，证明，订单已支付成功
+				order.setTransaction_id("无");//保存微信订单号
+				order.setOrderId(response.getOutTradeNo());//商品订单号order表中的id
+				order.setReason("支付宝生成二维码失败");//支付失败的原因
+				userService.updateOrder(order);//
+				log.info("请求支付未成功生成二维码,支付宝服务器返回的数据："+System.getProperty("line.separator")+"\t\t\t\t"+
+						"alipay_trade_precreate_response{"+System.getProperty("line.separator")+"\t\t\t\t\t"+
+						"code:"+response.getCode()+System.getProperty("line.separator")+"\t\t\t\t\t"+
+						"msg:" +response.getMsg()+System.getProperty("line.separator")+"\t\t\t\t\t"+
+						"sub_code:" +response.getSubCode()+System.getProperty("line.separator")+"\t\t\t\t\t"+
+						"sub_msg:" +response.getSubMsg()+System.getProperty("line.separator")+"\t\t\t\t"+
+						"}");
+				//网关错误
+				if(!response.getCode().equals("10000")){
+					JSONObject obj=new JSONObject();
+					obj.put("result", false);
+					obj.put("code", "0");
+					obj.put("message", "(网关错误)系统错误，请重新下单");
+					obj.put("path", null);
+					log.info("请求支付返回前端的参数："+obj.toString());
+					resp.getOutputStream().print(obj.toString());
+					/*log.info("{\"msg\":\"返回前端数据：(网关错误)系统错误，请重新下单\",\"result\":[{}],\"code\":\""+response.getCode()+"\"}");
+					resp.getWriter().write("{\"msg\":\"系统错误，请重新下单\",\"result\":[{}],\"code\":\""+response.getCode()+"\"}");*/
+				}
+				//接口返回错误	请立即调用查询订单API，查询当前订单的状态，并根据订单状态决定下一步的操作 
+				if("ACQ.SYSTEM_ERROR".equals(response.getSubMsg())){
+					req.setAttribute("out_trade_no", out_trade_no);
+					req.getRequestDispatcher("/alipayQueryServlet").forward(req, resp);
+				}
+				//参数无效	检查请求参数，修改后重新发起请求 
+				if("ACQ.INVALID_PARAMETER".equals(response.getSubMsg())){
+					JSONObject obj=new JSONObject();
+					obj.put("result", false);
+					obj.put("code", "0");
+					obj.put("message", "参数无效");
+					obj.put("path", null);
+					log.info("请求支付返回前端的参数："+obj.toString());
+					resp.getOutputStream().print(obj.toString());
+					/*log.info("{\"msg\":\"返回前端数据：参数无效\",\"result\":[{}],\"code\":\"\"}");
+					resp.getOutputStream().print("{\"msg\":\"参数无效\",\"result\":[{}],\"code\":\"\"}");*/
+				}
+				//无权限使用接口		联系支付宝小二签约 
+				if("ACQ.ACCESS_FORBIDDEN".equals(response.getSubMsg())){
+					JSONObject obj=new JSONObject();
+					obj.put("result", false);
+					obj.put("code", "0");
+					obj.put("message", "无权限使用接口");
+					obj.put("path", null);
+					log.info("请求支付返回前端的参数："+obj.toString());
+					resp.getOutputStream().print(obj.toString());
+					/*log.info("{\"msg\":\"返回前端数据：无权限使用接口\",\"result\":[{}],\"code\":\"\"}");
+					resp.getOutputStream().print("{\"msg\":\"无权限使用接口\",\"result\":[{}],\"code\":\"\"}");*/
+				}
+				//订单信息中包含违禁词
+				if("ACQ.EXIST_FORBIDDEN_WORD".equals(response.getSubMsg())){
+					JSONObject obj=new JSONObject();
+					obj.put("result", false);
+					obj.put("code", "0");
+					obj.put("message", "订单信息中包含违禁词,请修改订单");
+					obj.put("path", null);
+					log.info("请求支付返回前端的参数："+obj.toString());
+					resp.getOutputStream().print(obj.toString());
+					/*log.info("{\"msg\":\"返回前端数据：订单信息中包含违禁词,请修改订单\",\"result\":[{}],\"code\":\"\"}");
+					resp.getOutputStream().print("{\"msg\":\"订单信息中包含违禁词,请修改订单\",\"result\":[{}],\"code\":\"\"}");*/
+				}
+				//应用APP_ID填写错误
+				if("ACQ.PARTNER_ERROR".equals(response.getSubMsg())){
+					JSONObject obj=new JSONObject();
+					obj.put("result", false);
+					obj.put("code", "0");
+					obj.put("message", "应用APP_ID填写错误");
+					obj.put("path", null);
+					log.info("请求支付返回前端的参数："+obj.toString());
+					resp.getOutputStream().print(obj.toString());
+					/*log.info("{\"msg\":\"返回前端数据：应用APP_ID填写错误\",\"result\":[{}],\"code\":\"\"}");
+					resp.getOutputStream().print("{\"msg\":\"应用APP_ID填写错误\",\"result\":[{}],\"code\":\"\"}");*/
+				}
+				// 	订单总金额超过限额
+				if("ACQ.TOTAL_FEE_EXCEED".equals(response.getSubMsg())){
+					JSONObject obj=new JSONObject();
+					obj.put("result", false);
+					obj.put("code", "0");
+					obj.put("message", "订单总金额超过限额,修改订单金额再发起请求");
+					obj.put("path", null);
+					log.info("请求支付返回前端的参数："+obj.toString());
+					resp.getOutputStream().print(obj.toString());
+					/*log.info("{\"msg\":\"返回前端数据：订单总金额超过限额,修改订单金额再发起请求\",\"result\":[{}],\"code\":\"\"}");
+					resp.getOutputStream().print("{\"msg\":\"订单总金额超过限额,修改订单金额再发起请求\",\"result\":[{}],\"code\":\"\"}");*/
+				}
+				//交易信息被篡改	更换商家订单号后，重新发起请求
+				if("ACQ.CONTEXT_INCONSISTENT".equals(response.getSubMsg())){
+					JSONObject obj=new JSONObject();
+					obj.put("result", false);
+					obj.put("code", "0");
+					obj.put("message", "交易信息被篡改,更换商家订单号后，重新发起请求");
+					obj.put("path", null);
+					log.info("请求支付返回前端的参数："+obj.toString());
+					resp.getOutputStream().print(obj.toString());
+					/*log.info("{\"msg\":\"返回前端数据：交易信息被篡改,更换商家订单号后，重新发起请求\",\"result\":[{}],\"code\":\"\"}");
+					resp.getOutputStream().print("{\"msg\":\"交易信息被篡改,更换商家订单号后，重新发起请求\",\"result\":[{}],\"code\":\"\"}");*/
+				}
+				//交易已被支付	确认该笔交易信息是否为当前买家的，如果是则认为交易付款成功，如果不是则更换商家订单号后，重新发起请求 
+				if("ACQ.TRADE_HAS_SUCCESS".equals(response.getSubMsg())){
+					JSONObject obj=new JSONObject();
+					obj.put("result", false);
+					obj.put("code", "0");
+					obj.put("message", "交易已被支付");
+					obj.put("path", null);
+					log.info("请求支付返回前端的参数："+obj.toString());
+					resp.getOutputStream().print(obj.toString());
+				/*	log.info("{\"msg\":\"返回前端数据：交易已被支付\",\"result\":[{}],\"code\":\"\"}");
+					resp.getOutputStream().print("{\"msg\":\"交易已被支付\",\"result\":[{}],\"code\":\"\"}");*/
+				}
+				//交易已经关闭	 	更换商家订单号后，重新发起请求 
+				if("ACQ.TRADE_HAS_CLOSE".equals(response.getSubMsg())){
+					JSONObject obj=new JSONObject();
+					obj.put("result", false);
+					obj.put("code", "0");
+					obj.put("message", "交易已经关闭");
+					obj.put("path", null);
+					log.info("请求支付返回前端的参数："+obj.toString());
+					resp.getOutputStream().print(obj.toString());
+					/*log.info("{\"msg\":\"返回前端数据：交易已经关闭\",\"result\":[{}],\"code\":\"\"}");
+					resp.getOutputStream().print("{\"msg\":\"交易已经关闭\",\"result\":[{}],\"code\":\"\"}");*/
+				}
+				//买卖家不能相同
+				if("ACQ.BUYER_SELLER_EQUAL".equals(response.getSubMsg())){
+					JSONObject obj=new JSONObject();
+					obj.put("result", false);
+					obj.put("code", "0");
+					obj.put("message", "买卖家不能相同,更换买家重新付款");
+					obj.put("path", null);
+					log.info("请求支付返回前端的参数："+obj.toString());
+					resp.getOutputStream().print(obj.toString());
+					/*log.info("{\"msg\":\"返回前端数据：买卖家不能相同,更换买家重新付款 \",\"result\":[{}],\"code\":\"\"}");
+					resp.getOutputStream().print("{\"msg\":\"买卖家不能相同,更换买家重新付款 \",\"result\":[{}],\"code\":\"\"}");*/
+				}
+				// 	买家状态非法	用户联系支付宝小二，确认买家状态为什么非法
+				if("ACQ.TRADE_BUYER_NOT_MATCH".equals(response.getSubMsg())){
+					JSONObject obj=new JSONObject();
+					obj.put("result", false);
+					obj.put("code", "0");
+					obj.put("message", "买家状态非法");
+					obj.put("path", null);
+					log.info("请求支付返回前端的参数："+obj.toString());
+					resp.getOutputStream().print(obj.toString());
+					/*log.info("{\"msg\":\"返回前端数据：买家状态非法\",\"result\":[{}],\"code\":\"\"}");
+					resp.getOutputStream().print("{\"msg\":\"买家状态非法\",\"result\":[{}],\"code\":\"\"}");*/
+				}
+				//买家付款日限额超限
+				if("ACQ.BUYER_PAYMENT_AMOUNT_DAY_LIMIT_ERROR".equals(response.getSubMsg())){
+					JSONObject obj=new JSONObject();
+					obj.put("result", false);
+					obj.put("code", "0");
+					obj.put("message", "买家付款日限额超限");
+					obj.put("path", null);
+					log.info("请求支付返回前端的参数："+obj.toString());
+					resp.getOutputStream().print(obj.toString());
+					/*log.info("{\"msg\":\"返回前端数据：买家付款日限额超限\",\"result\":[{}],\"code\":\"\"}");
+					resp.getOutputStream().print("{\"msg\":\"买家付款日限额超限\",\"result\":[{}],\"code\":\"\"}");*/
+				}
+				//商户收款额度超限
+				if("ACQ.BEYOND_PAY_RESTRICTION".equals(response.getSubMsg())){
+					JSONObject obj=new JSONObject();
+					obj.put("result", false);
+					obj.put("code", "0");
+					obj.put("message", "商户收款额度超限");
+					obj.put("path", null);
+					log.info("请求支付返回前端的参数："+obj.toString());
+					resp.getOutputStream().print(obj.toString());
+					/*log.info("{\"msg\":\"返回前端数据：商户收款额度超限\",\"result\":[{}],\"code\":\"\"}");
+					resp.getOutputStream().print("{\"msg\":\"商户收款额度超限\",\"result\":[{}],\"code\":\"\"}");*/
+				}
+				//商户收款金额超过月限额
+				if("ACQ.BEYOND_PER_RECEIPT_RESTRICTION".equals(response.getSubMsg())){
+					JSONObject obj=new JSONObject();
+					obj.put("result", false);
+					obj.put("code", "0");
+					obj.put("message", "商户收款额度超限");
+					obj.put("path", null);
+					log.info("请求支付返回前端的参数："+obj.toString());
+					resp.getOutputStream().print(obj.toString());
+					/*log.info("{\"msg\":\"返回前端数据：商户收款金额超过月限额\",\"result\":[{}],\"code\":\"\"}");
+					resp.getOutputStream().print("{\"msg\":\"商户收款金额超过月限额\",\"result\":[{}],\"code\":\"\"}");*/
+				}
+				//买家付款月额度超限
+				if("ACQ.BUYER_PAYMENT_AMOUNT_MONTH_LIMIT_ERROR".equals(response.getSubMsg())){
+					JSONObject obj=new JSONObject();
+					obj.put("result", false);
+					obj.put("code", "0");
+					obj.put("message", "买家付款月额度超限");
+					obj.put("path", null);
+					log.info("请求支付返回前端的参数："+obj.toString());
+					resp.getOutputStream().print(obj.toString());
+					/*log.info("{\"msg\":\"返回前端数据：买家付款月额度超限\",\"result\":[{}],\"code\":\"\"}");
+					resp.getOutputStream().print("{\"msg\":\"买家付款月额度超限\",\"result\":[{}],\"code\":\"\"}");*/
+				}
+				//商家账号被冻结
+				if("ACQ.SELLER_BEEN_BLOCKED".equals(response.getSubMsg())){
+					JSONObject obj=new JSONObject();
+					obj.put("result", false);
+					obj.put("code", "0");
+					obj.put("message", "商家账号被冻结");
+					obj.put("path", null);
+					log.info("请求支付返回前端的参数："+obj.toString());
+					resp.getOutputStream().print(obj.toString());
+					/*log.info("{\"msg\":\"返回前端数据：商家账号被冻结\",\"result\":[{}],\"code\":\"\"}");
+					resp.getOutputStream().print("{\"msg\":\"商家账号被冻结\",\"result\":[{}],\"code\":\"\"}");*/
+				}
+				//买家未通过人行认证
+				if("ACQ.ERROR_BUYER_CERTIFY_LEVEL_LIMIT".equals(response.getSubMsg())){
+					JSONObject obj=new JSONObject();
+					obj.put("result", false);
+					obj.put("code", "0");
+					obj.put("message", "买家未通过人行认证");
+					obj.put("path", null);
+					log.info("请求支付返回前端的参数："+obj.toString());
+					resp.getOutputStream().print(obj.toString());
+					/*log.info("{\"msg\":\"返回前端数据：买家未通过人行认证\",\"result\":[{}],\"code\":\"\"}");
+					resp.getOutputStream().print("{\"msg\":\"买家未通过人行认证\",\"result\":[{}],\"code\":\"\"}");*/
+				}
+				//商户门店编号无效
+				if("ACQ.INVALID_STORE_ID".equals(response.getSubMsg())){
+					JSONObject obj=new JSONObject();
+					obj.put("result", false);
+					obj.put("code", "0");
+					obj.put("message", "商户门店编号无效");
+					obj.put("path", null);
+					log.info("请求支付返回前端的参数："+obj.toString());
+					resp.getOutputStream().print(obj.toString());
+					/*log.info("{\"msg\":\"返回前端数据：商户门店编号无效\",\"result\":[{}],\"code\":\"\"}");
+					resp.getOutputStream().print("{\"msg\":\"商户门店编号无效\",\"result\":[{}],\"code\":\"\"}");*/
+				}
+			}
+			log.info("===============================================生成二维码操作结束===============================================");
+		} catch (AlipayApiException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+	}
+}

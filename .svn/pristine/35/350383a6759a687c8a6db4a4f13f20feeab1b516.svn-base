@@ -1,0 +1,55 @@
+package cn.nvinfo.alipay.servlet;
+
+
+import java.io.IOException;
+
+import javax.servlet.ServletException;
+import javax.servlet.http.HttpServlet;
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
+
+
+import com.alipay.api.response.AlipayTradePrecreateResponse;
+
+import cn.nvinfo.domain.Order;
+import cn.nvinfo.service.UserService;
+import cn.nvinfo.service.imp.UserServiceImp;
+/**
+ * 支付结果通知
+ * @author 杨立	2017-10-30
+ *
+ */
+public class AlipayPayResult extends HttpServlet {
+
+	private static final long serialVersionUID = 1L;
+
+	@Override
+	protected void doGet(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
+		doPost(req, resp);
+	}
+
+	@Override
+	protected void doPost(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
+		req.setCharacterEncoding("utf-8");
+		resp.setCharacterEncoding("utf-8");
+		AlipayTradePrecreateResponse response=new AlipayTradePrecreateResponse();
+			if(response != null && response.isSuccess()){
+				Order order = new Order();
+				order.setOrderState(0);//将订单表中的orderState改为0，证明，订单已支付成功
+				order.setTransaction_id("无");//保存微信订单号
+				order.setOrderId(response.getOutTradeNo());//商品订单号order表中的id
+				UserService us=new UserServiceImp();
+				us.updateOrder(order);//
+				resp.getWriter().println("success");
+			}else{
+				//网关错误
+				if(!response.getCode().equals("10000")){
+					resp.getWriter().write("{\"msg\":\"系统错误\",\"result\":[{}],\"code\":\"\"}");
+				}else{
+					resp.getWriter().println("fail");
+				}
+				
+			}
+		
+	}
+}

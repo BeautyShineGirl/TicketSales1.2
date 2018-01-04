@@ -1,0 +1,35 @@
+package cn.nvinfo.dao.imp;
+
+
+import java.util.HashMap;
+import java.util.Map;
+
+import javax.annotation.Resource;
+
+import org.mybatis.spring.SqlSessionTemplate;
+import org.springframework.stereotype.Repository;
+
+import cn.nvinfo.dao.UserDao;
+import cn.nvinfo.domain.Custom;
+
+
+@Repository
+public class UserDaoImp implements UserDao{
+
+	@Resource
+	private SqlSessionTemplate template;
+
+	/*
+	 * µÇÂ½  ÑîÁ¢  2017-10-16(non-Javadoc)
+	 * @see cn.nvinfo.dao.UserDao#getUser(java.lang.String, java.lang.String)
+	 */
+	public Custom getUser(String loginName, String password) {
+		Map<String,Object> map=new HashMap<String, Object>();
+		map.put("loginName", loginName);
+		map.put("password", password);
+		return template.selectOne("user.getUser",map);
+	}
+	
+	
+
+}

@@ -1,0 +1,38 @@
+package cn.nvinfo.service;
+
+import cn.nvinfo.domain.CustomType;
+import cn.nvinfo.utils.Pager;
+
+/**
+ * 分销商管理以及基础设置中的分销商类别设置
+ * @author yangli 	2017.09.18
+ *
+ */
+public interface CustomTypeService {
+
+	/*
+	 * 分页查询
+	 */
+	Pager<CustomType> getPager(Integer pageIndex, Integer pageSize);
+	
+	/*
+	 * 添加
+	 */
+	int add(CustomType customType);
+
+	/*
+	 * 修改
+	 */
+	int edit(CustomType customType);
+
+	/*
+	 * 根据id查询数据
+	 */
+	CustomType getById(Integer id);
+
+	/*
+	 * 删除
+	 */
+	int delete(Integer id);
+
+}

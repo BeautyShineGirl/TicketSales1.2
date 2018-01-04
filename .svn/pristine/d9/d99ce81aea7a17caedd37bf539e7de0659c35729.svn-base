@@ -1,0 +1,94 @@
+package cn.nvinfo.tools;
+
+import java.util.List;
+
+/**
+ * 分销商管理	分页查询页面显示
+ * @author 杨立	2017-09-26
+ *
+ */
+public class CustomList {
+
+	private int id;//编号
+	private String name;//分销商名称
+	private String typeName;//分销商类别
+	private int level;//分销商等级
+	private String phone;//电话
+	private String linkMan;//联系人
+	private double creditLimit;//授信额度
+	private double cashMoney;//预存现金
+	private int state;//分销商状态
+	private String fileUrl;//法人证件照的路径字符串
+	private List<String> fileList;// 法人证件照的路径集合
+	public CustomList() {
+		super();
+	}
+	public int getId() {
+		return id;
+	}
+	public void setId(int id) {
+		this.id = id;
+	}
+	public String getName() {
+		return name;
+	}
+	public void setName(String name) {
+		this.name = name;
+	}
+	public String getTypeName() {
+		return typeName;
+	}
+	public void setTypeName(String typeName) {
+		this.typeName = typeName;
+	}
+	public int getLevel() {
+		return level;
+	}
+	public void setLevel(int level) {
+		this.level = level;
+	}
+	public String getPhone() {
+		return phone;
+	}
+	public void setPhone(String phone) {
+		this.phone = phone;
+	}
+	public String getLinkMan() {
+		return linkMan;
+	}
+	public void setLinkMan(String linkMan) {
+		this.linkMan = linkMan;
+	}
+	public double getCreditLimit() {
+		return creditLimit;
+	}
+	public void setCreditLimit(double creditLimit) {
+		this.creditLimit = creditLimit;
+	}
+	public double getCashMoney() {
+		return cashMoney;
+	}
+	public void setCashMoney(double cashMoney) {
+		this.cashMoney = cashMoney;
+	}
+	public int getState() {
+		return state;
+	}
+	public void setState(int state) {
+		this.state = state;
+	}
+	public String getFileUrl() {
+		return fileUrl;
+	}
+	public void setFileUrl(String fileUrl) {
+		this.fileUrl = fileUrl;
+	}
+	public List<String> getFileList() {
+		return fileList;
+	}
+	public void setFileList(List<String> fileList) {
+		this.fileList = fileList;
+	}
+	
+	
+}

@@ -1,0 +1,31 @@
+package cn.nvinfo.service.imp;
+
+
+import javax.annotation.Resource;
+
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import cn.nvinfo.dao.UserDao;
+import cn.nvinfo.domain.Custom;
+import cn.nvinfo.service.UserService;
+
+
+@Service
+@Transactional
+public class UserServiceImp implements UserService {
+
+	@Resource
+	private UserDao userDao;
+
+	/*
+	 * µÇÂ½  ÑîÁ¢  2017-10-16(non-Javadoc)
+	 * @see cn.nvinfo.service.UserService#getUser(java.lang.String, java.lang.String)
+	 */
+	public Custom getUser(String loginName, String password) {
+		return userDao.getUser(loginName,password);
+	}
+	
+	
+
+}

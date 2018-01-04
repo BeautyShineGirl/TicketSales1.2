@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="customType">
+  
+  	<!-- 获得总记录数 -->
+  	<select id="getAllCount" resultType="int">
+  		select count(*) from customType	 order by id asc
+  	</select>
+  	
+  	<!-- 获得当前页的数据 -->
+  	<select id="getPageDate" resultType="cn.nvinfo.domain.CustomType">
+  		select * from customType order by id asc limit #{pageIndex},#{pageSize}	
+  	</select>
+  	
+  	<!-- 添加 -->
+  	<insert id="save" parameterType="cn.nvinfo.domain.CustomType" useGeneratedKeys="true">
+  		insert into customType (name,condPercent,condYuan) values(#{name},#{condPercent},#{condYuan})
+  	</insert>
+  	
+  	<!-- 修改 -->
+  	<update id="edit" parameterType="cn.nvinfo.domain.CustomType" useGeneratedKeys="true">
+  		update customType set name=#{name},condPercent=#{condPercent},condYuan=#{condYuan} where id=#{id} 
+  	</update>
+  	
+  	<!-- 修改的数据回显 -->
+  	<select id="getById" resultType="cn.nvinfo.domain.CustomType">
+  		select * from customType where id=#{id}
+  	</select>
+  	
+  	<!-- 删除 -->
+  	<delete id="delete" parameterType="cn.nvinfo.domain.CustomType">
+  		delete from customType where id=#{id}
+  	</delete>
+</mapper>

@@ -1,0 +1,72 @@
+<%@ page language="java" import="java.util.*" pageEncoding="UTF-8"%>
+<%
+String path = request.getContextPath();
+String basePath = request.getScheme()+"://"+request.getServerName()+":"+request.getServerPort()+path+"/";
+%>
+
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<html>
+  <head>
+    <base href="<%=basePath%>">
+    
+    <title>My JSP 'add.jsp' starting page</title>
+    
+	<meta http-equiv="pragma" content="no-cache">
+	<meta http-equiv="cache-control" content="no-cache">
+	<meta http-equiv="expires" content="0">    
+	<meta http-equiv="keywords" content="keyword1,keyword2,keyword3">
+	<meta http-equiv="description" content="This is my page">
+	<!--
+	<link rel="stylesheet" type="text/css" href="styles.css">
+	-->
+<script type="text/javascript">
+function testUpload(){  
+    var form = new FormData(document.getElementById("test"));  
+      
+    $.ajax({  
+        url : url,  
+        data : form,  
+        type : 'post',  
+        processData:false,  
+        contentType:false,  
+        success : function(data){  
+            alert("成功");  
+        },  
+        error : function(data){  
+              
+        }  
+    });  
+} 
+</script>
+  </head>
+  
+  <body>
+  	 <form action="product/add.action" method="post" style="margin-left:300px;">
+    	产品编号：自助生成<br> 
+    	票名：<input type="text" name="name"/><br>
+    	所属景区：<input type="text" name="viewId"/><br>
+    	供应商：<input type="text" name="supplierId"/><br>
+    	结算价：<input type="text" name="endPrice"/><br>
+    	门市价：<input type="text" name="marketPrice"/><br>
+    	门票类型：<input type="text" name="type"/><br>
+    	票型：<input type="text" name="ticketType"/><br>
+    	起止日期：<input type="text" name="startTime"/><br>
+    	<input type="text" name="endTime"/><br>
+    	当天可售数量：<input type="text" name="dailySale"/><br>
+    	总数量：<input type="text" name="num"/><br>
+    	提前购买：<input type="text" name="orderTime"/><br>
+    	是否可退：<input type="text" name="isCancel"/><br>
+    	是否销售：<input type="text" name="isSale"/><br>
+    	入园须知：<input type="text" name="notice"/><br>
+    	费用包含：<input type="text" name="costInside"/><br>
+    	费用不包含：<input type="text" name="costOutside"/><br>
+    	备注：<input type="text" name="remark"/><br>
+    	使用类别开关：<input type="text" name="userType"/><br>
+    	优先级类别：<input type="text" name="priorityType"/><br>
+    	优先级：<input type="text" name="priorityId"/><br>
+    	分销商列表：<input type="text" name="custom"/><br>
+    	入园方式：<input type="text" name="method"/><br>
+    	<input type="submit" value="提交"/>
+    </form>	 
+  </body>
+</html>

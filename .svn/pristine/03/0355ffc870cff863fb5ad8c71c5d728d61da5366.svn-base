@@ -1,0 +1,13 @@
+package cn.nvinfo.dao;
+
+
+import cn.nvinfo.domain.Custom;
+
+public interface UserDao {
+
+	/*
+	 * µÇÂ½  ÑîÁ¢  2017-10-16
+	 */
+	Custom getUser(String loginName, String password);
+
+}

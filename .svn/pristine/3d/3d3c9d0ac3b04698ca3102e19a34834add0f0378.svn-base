@@ -1,0 +1,225 @@
+package cn.nvinfo.service.imp;
+
+
+import java.util.List;
+
+import javax.annotation.Resource;
+
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import cn.nvinfo.dao.ProductDao;
+import cn.nvinfo.domain.CalendarPriceTable;
+import cn.nvinfo.domain.CustomType;
+import cn.nvinfo.domain.Priority;
+import cn.nvinfo.domain.Product;
+import cn.nvinfo.domain.TicketType;
+import cn.nvinfo.service.ProductService;
+import cn.nvinfo.tools.INList;
+import cn.nvinfo.tools.ProductList;
+import cn.nvinfo.utils.Pager;
+
+/**
+ * 产品信息管理
+ * @author 杨立   2017-09-25
+ *
+ */
+@Service
+@Transactional
+public class ProductServiceImp implements ProductService {
+
+	@Resource
+	private ProductDao productDao;
+
+
+	/*
+	 * 从字典中获得景区门票类型  杨立   2017-09-25
+	 * (non-Javadoc)
+	 * @see cn.nvinfo.service.ViewService#getViewType()
+	 */
+	public List<String> getType() {
+		
+		return productDao.getType();
+	}
+
+	/*
+	 * 获得票型	杨立   2017-09-25
+	 * (non-Javadoc)
+	 * @see cn.nvinfo.service.ProductService#ticketType()
+	 */
+	public List<INList> ticketType() {
+		
+		return productDao.ticketType();
+	}
+	/*
+	 * 从字典中是否可退	杨立   2017-09-25  
+	 * (non-Javadoc)
+	 * @see cn.nvinfo.service.ProductService#getisCancel()
+	 */
+	public List<String> getIsCancel() {
+		return productDao.getIsCancel();
+	}
+	/*
+	 *  获得优先级类别和优先级	杨立   2017-09-25 
+	 * @see cn.nvinfo.service.ProductService#getPriority()
+	 */
+	public List<Priority> getPriority() {
+		return productDao.getPriority();
+	}
+
+	/*
+	 *获得分销商列表	杨立   2017-09-25
+	 * @see cn.nvinfo.service.ProductService#getCustom()
+	 */
+	public List<INList> getCustom() {
+		return productDao.getCustom();
+	}
+	//所属景区 	杨立   2017-09-25  
+	public List<INList> getView() {
+		return productDao.getView();
+	}
+	//供应商	杨立   2017-09-25 
+	public List<INList> getSupplier() {
+		return productDao.getSupplier();
+	}
+	//添加	杨立   2017-09-25
+	public int add(Product product) {
+		return productDao.add(product);
+	}
+	
+	/*
+	 * 删除	杨立   2017-09-25(non-Javadoc)
+	 * @see cn.nvinfo.service.ProductService#delete(java.lang.Integer)
+	 */
+	public int delete(Integer id) {
+		return productDao.delete(id);
+	}
+	/*
+	 * 数据回显	杨立   2017-09-25(non-Javadoc)
+	 * @see cn.nvinfo.service.ProductService#getById(java.lang.Integer)
+	 */
+	public Product getById(Integer id) {
+		return productDao.getById(id);
+	}
+	/*
+	 * 根据id获得景区名字 杨立   2017-09-25
+	 * (non-Javadoc)
+	 * @see cn.nvinfo.service.ProductService#getViewName()
+	 */
+	public String getViewName(Integer viewId) {
+		return productDao.getViewName(viewId);
+	}
+
+	public String getSupplierName(Integer supplierId) {
+		return productDao.getSupplierName(supplierId);
+	}
+	/*
+	 * 修改	杨立   2017-09-25
+	 * (non-Javadoc)
+	 * @see cn.nvinfo.service.ProductService#edit(cn.nvinfo.domain.Product)
+	 */
+	public int edit(Product product) {
+		return productDao.edit(product);
+	}
+
+	/*
+	 *  分页查询	杨立  2017-09-26
+	 * (non-Javadoc)
+	 * @see cn.nvinfo.service.ProductService#getPager(java.lang.Integer, java.lang.Integer, java.lang.String, java.lang.String, java.lang.String, java.lang.String, double)
+	 */
+	public Pager<ProductList> getPager(Integer pageIndex, Integer pageSize,Integer id,Integer logic,
+			String name, String viewName, String viewType, Integer ticketType,
+			Double endPrice) {
+		Pager<ProductList> pager =new Pager<ProductList>();
+		pager.setCurrPage(pageIndex);
+		pager.setPageSize(pageSize);
+		pager.setAllCount(productDao.getAllCount(id,logic,name,viewName,viewType,ticketType,endPrice));
+		pager.setDatas(productDao.getPageDate(pageIndex,pageSize,id,logic,name,viewName,viewType,ticketType,endPrice));
+		pager.setPageCount();
+		return pager;
+	}
+
+	/*
+	 * 返回景区类别	yangli	2017-10-19(non-Javadoc)
+	 * @see cn.nvinfo.service.ProductService#getViewType()
+	 */
+	public List<INList> getViewType() {
+		return productDao.getViewType();
+	}
+	/*
+	 * 再删除产品之前，先查询该产品是否有订单，若有，则返回删除失败	yangli	2017-10-19(non-Javadoc)
+	 * @see cn.nvinfo.service.ProductService#getOrder(java.lang.Integer)
+	 */
+	public int getOrder(Integer id) {
+		return productDao.getOrder(id);
+	}
+	/*
+	 * 根据priorityId获得优先级类别的名字	yangli	2017-10-19(non-Javadoc)
+	 * @see cn.nvinfo.service.ProductService#getByProId(java.lang.Integer)
+	 */
+	public List<String> getByProId(Integer priorityId) {
+		return productDao.getByProId(priorityId);
+	}
+	
+	/*
+	 * 普通管理员	yangli	2017-10-19(non-Javadoc)
+	 * @see cn.nvinfo.service.ProductService#getPager(java.lang.Integer, java.lang.Integer, java.lang.Integer, java.lang.Integer, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.Double, java.lang.Integer)
+	 */
+	public Pager<ProductList> getPager(Integer pageIndex, Integer pageSize,
+			Integer id, Integer logic, String name, String viewName,
+			String viewType, Integer ticketType, Double endPrice,
+			Integer staff_id) {
+		Pager<ProductList> pager =new Pager<ProductList>();
+		pager.setCurrPage(pageIndex);
+		pager.setPageSize(pageSize);
+		pager.setAllCount(productDao.getAllCount(id,logic,name,viewName,viewType,ticketType,endPrice,staff_id));
+		pager.setDatas(productDao.getPageDate(pageIndex,pageSize,id,logic,name,viewName,viewType,ticketType,endPrice,staff_id));
+		pager.setPageCount();
+		return pager;
+	}
+
+	/*
+	 * //根据customId获得优先级类别的名字	yangli	2017-11-1(non-Javadoc)
+	 * @see cn.nvinfo.service.ProductService#getBycustId(java.lang.Integer)
+	 */
+	public List<String> getBycustId(Integer customId) {
+		return productDao.getBycustId(customId);
+	}
+	/*
+	 * 首先根据票型知道票型加价率和加价元	yangli 2017-11-1(non-Javadoc)
+	 * @see cn.nvinfo.service.ProductService#getTtById(java.lang.Integer)
+	 */
+	public TicketType getTtById(Integer ticketType) {
+		
+		return productDao.getTtById(ticketType);
+	}
+
+	/*
+	 * 根据分销商知道分销商的加价率	yangli	2017-11-1(non-Javadoc)
+	 * @see cn.nvinfo.service.ProductService#getCtById(java.lang.Integer)
+	 */
+	public CustomType getCtById(Integer customId) {
+		return productDao.getCtById(customId);
+	}
+	//根据random_calendar查出该产品对应的id，根据id把价格日历表中的价格填进去  2017-11-17
+	public int getIdByRandom(String random_calendar) {
+		return productDao.getIdByRandom(random_calendar);
+	}
+	//添加价格日期到价格日期表	2017-11-17
+	public int saveCpt(CalendarPriceTable cpt) {
+		return productDao.saveCpt(cpt);
+	}
+	/*
+	 * 在删除产品之后删除该产品的价格日历	更新	杨立	2017-12-06(non-Javadoc)
+	 * @see cn.nvinfo.service.ProductService#deleteCalendaer(java.lang.Integer)
+	 */
+	public int deleteCalendaer(Integer id) {
+		return productDao.deleteCalendaer(id);
+	}
+	//修改价格日历表的操作	杨立	2017-12-13
+	public int updateCalendar(CalendarPriceTable cpt) {
+		return productDao.updateCalendar(cpt);
+	}
+
+	
+}

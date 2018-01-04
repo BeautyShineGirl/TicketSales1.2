@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="test">
+  
+  	<insert id="save" parameterType="cn.nvinfo.domain.User" useGeneratedKeys="true">
+  		insert into user(name) values(#{name})
+  	</insert>
+  	
+  	<select id="getAllCount" resultType="int">
+  		select count(*) from user  order by id asc limit #{pageIndex},#{pageSize}	
+  	</select>
+  	
+  	<select id="getPageDate" resultType="cn.nvinfo.domain.User">
+  		select * from user order by id asc limit #{pageIndex},#{pageSize}  order by id asc limit #{pageIndex},#{pageSize}	
+  	</select>
+  	
+  	<resultMap type="cn.nvinfo.domain.User" id="getPageDate">
+  		 <!-- id -->
+      <id column="id" property="id"/>
+      
+      <!-- 其他属性 -->
+      <result column="name" property="name"/>
+      <association property="dept_id">
+      	
+      </association>
+  	</resultMap>
+  	
+  	<update id="edit" parameterType="cn.nvinfo.domain.User" useGeneratedKeys="true">
+  		update user set dept_id=#{deptId},name=#{name} where id=#{id}
+  	</update>
+</mapper>

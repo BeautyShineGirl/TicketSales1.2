@@ -1,0 +1,60 @@
+package cn.nvinfo.service;
+
+import java.util.List;
+
+import cn.nvinfo.domain.Department;
+import cn.nvinfo.domain.Power;
+import cn.nvinfo.domain.Staff;
+import cn.nvinfo.tools.StaffList;
+import cn.nvinfo.utils.Pager;
+
+/**
+ *  用户管理
+ * @author 杨立   2017-09-29
+ *
+ */
+public interface StaffService {
+
+	/*
+	 * 分页查询	杨立   2017-09-29
+	 */
+	Pager<StaffList> getPager(Integer pageIndex, Integer pageSize);
+	/*
+	 * 删除	杨立   2017-09-29
+	 */
+	int delete(Integer id);
+	/*
+	 * 从字典中获得部门	杨立   2017-09-29
+	 */
+	List<Department> getdepartment();
+	/*
+	 * 从字典中获得角色	杨立   2017-09-29
+	 */
+	List<String> getRole();
+	/*
+	 * 返回权限集合	杨立   2017-09-29
+	 */
+	List<Power> getPower();
+	/*
+	 * 添加	杨立	2017-09-29
+	 * 
+	 */
+	int add(Staff staff);
+	/*
+	 * 根据id获得用户信息		yangli	2017-09-29
+	 */
+	Staff getById(Integer id);
+	/*
+	 * 修改	杨立	2017-09-29
+	 */
+	int edit(Staff staff);
+	/*
+	 * 检查用户名是否已存在，     yangli 2017-10-09
+	 */
+	List<String> checkLoginName(String loginName);
+	/*
+	 * //再删除人员之前，先查询该人员是否有负责的景区，若有，则返回删除失败
+	 */
+	int getView(Integer id);
+	
+}

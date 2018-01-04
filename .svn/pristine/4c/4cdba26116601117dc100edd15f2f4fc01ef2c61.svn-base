@@ -1,0 +1,79 @@
+package cn.nvinfo.service;
+
+import java.util.List;
+
+import cn.nvinfo.domain.Custom;
+import cn.nvinfo.domain.CustomType;
+import cn.nvinfo.tools.CustomList;
+import cn.nvinfo.utils.Pager;
+
+
+/**
+ *  分销商管理
+ *     
+ * @author 杨立   2017-09-26
+ *
+ */
+public interface CustomService {
+
+
+	/*
+	 *  分页查询	杨立  2017-09-26
+	 */
+	Pager<CustomList> getPager(Integer pageIndex, Integer pageSize,Integer id,Integer logic, String name,
+			String linkName,String custType,Integer level);
+	/*
+	 *修改数据回显  杨立  2017-09-27
+	 */
+	Custom getCustom(Integer id);
+	/*
+	 * 查询分销商类别的集合 杨立  2017-09-27
+	 */
+	List<CustomType> getCustomType();
+	/*
+	 * 从字典表中查询分销商等级	杨立  2017-09-27
+	 */
+	List<String> getLevel();
+	/*
+	 * 修改	杨立	2017-09-27
+	 */
+	int edit(Custom custom);
+	/*
+	 *  删除  	杨立   2017-09-27
+	 */
+	int delete(Integer id);
+	/*
+	 * 审核分页显示    查询出state状态为0的分销商信息返回给页面	杨立	2017-09-27
+	 */
+	Pager<CustomList> getCheckPager(Integer pageIndex, Integer pageSize);
+	/*
+	 * 审核通过操作	杨立	2017-09-27
+	 */
+	int editCheck(Integer id);
+	/*
+	 *  合同管理数据回显	杨立	2017-09-28
+	 */
+	
+	List<Custom> getCuseom();
+	/*
+	 * 合同上传	杨立	2017-09-28
+	 */
+	int upditURL(Integer id, String url);
+	/*
+	 * 审核不通过操作	杨立	2017-10-09
+	 */
+	int checkNotPass(Integer id);
+	/*
+	 * 分销商注册  杨立   2017-10-16
+	 */
+	int add(Custom custom);
+	/*
+	 * 检查用户名是否已存在，如果已存在，则返回用户名已存在
+	 */
+	List<String> checkUserName(String userName);
+	/*
+	 * 再删除分销商之前，先查询该分销商是否有产品，若有，则返回删除失败
+	 */
+	int getProduct();
+	
+}

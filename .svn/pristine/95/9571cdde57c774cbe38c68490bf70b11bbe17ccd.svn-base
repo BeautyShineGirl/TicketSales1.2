@@ -1,0 +1,143 @@
+package cn.nvinfo.wxpay.servlet;
+
+import java.io.IOException;
+import java.util.Date;
+import java.util.Map;
+import java.util.SortedMap;
+
+import javax.servlet.ServletException;
+import javax.servlet.http.HttpServlet;
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
+
+import org.apache.http.client.methods.CloseableHttpResponse;
+import org.apache.http.client.methods.HttpPost;
+import org.apache.http.entity.StringEntity;
+import org.apache.http.impl.client.CloseableHttpClient;
+import org.apache.http.impl.client.HttpClients;
+import org.apache.http.util.EntityUtils;
+
+import cn.nvinfo.utils.MD5;
+import cn.nvinfo.utils.SignUtils;
+import cn.nvinfo.utils.SwiftpassConfig;
+import cn.nvinfo.utils.XmlUtils;
+
+
+/**
+ * <一句话功能简述>
+ * <功能详细描述>退款查询
+ * 
+ * @author  Administrator
+ * @version  [版本号, 2014-8-29]
+ * @see  [相关类/方法]
+ * @since  [产品/模块版本]
+ */
+public class RefundQueryServlet extends HttpServlet {
+    private static final long serialVersionUID = 1L;
+
+    @Override
+    protected void doGet(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
+        doPost(req,resp); 
+    }
+
+    @Override
+    protected void doPost(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
+        req.setCharacterEncoding("utf-8");
+        resp.setCharacterEncoding("utf-8");
+        String out_trade_no=req.getParameter("out_trade_no");//订单表中的orderId
+        
+        SortedMap<String,String> map = XmlUtils.getParameterMap(req);
+        
+        String key = SwiftpassConfig.key;
+        
+        String res = null;
+        
+        String reqUrl = "https://api.mch.weixin.qq.com/pay/refundquery";
+        
+        map.put("appid", "wxaea446e27328b87a");//公众账号id
+        
+        map.put("mch_id", SwiftpassConfig.mch_id);//商户号
+        
+        map.put("nonce_str", String.valueOf(new Date().getTime()));//随即字符串
+        
+        map.put("out_trade_no", out_trade_no);//商户订单号
+        
+        Map<String,String> params = SignUtils.paraFilter(map);
+        
+        StringBuilder buf = new StringBuilder((params.size() +1) * 10);
+        SignUtils.buildPayParams(buf,params,false);
+        String preStr = buf.toString();
+        String sign = MD5.sign(preStr, "&key=" + key, "utf-8");
+        map.put("sign", sign);//签名
+        
+        CloseableHttpResponse response = null;
+        CloseableHttpClient client = null;
+        try {
+            HttpPost httpPost = new HttpPost(reqUrl);
+            StringEntity entityParams = new StringEntity(XmlUtils.parseXML(map),"utf-8");
+            httpPost.setEntity(entityParams);
+           // httpPost.setHeader("Content-Type", "text/xml;charset=ISO-8859-1");
+            client = HttpClients.createDefault();
+            response = client.execute(httpPost);
+            if(response != null && response.getEntity() != null){
+                Map<String,String> resultMap = XmlUtils.toMap(EntityUtils.toByteArray(response.getEntity()), "utf-8");
+                res = XmlUtils.toXml(resultMap);
+                if("FALL".equals(resultMap.get("return_code"))){
+					if("REFUNDNOTEXIST".equals(resultMap.get("err_code"))){
+						resp.getWriter().write("{\"msg\":\"退款订单查询失败\",\"result\":[{}],\"code\":\"\"}");
+					}
+					if("INVALID_TRANSACTIONID".equals(resultMap.get("err_code"))){
+						resp.getWriter().write("{\"msg\":\"无效transaction_id\",\"result\":[{}],\"code\":\"\"}");
+					}
+					//系统错误
+					if("SYSTEMERROR".equals(resultMap.get("err_code"))){
+						for (int i = 0; i < 1; i++) {
+							doPost(req,resp);
+							resp.getWriter().write("{\"msg\":\"系统错误\",\"result\":[{}],\"code\":\"\"}");
+						}
+					}
+					if("PARAM_ERROR".equals(resultMap.get("err_code"))){
+						resp.getWriter().write("{\"msg\":\"请求参数错误，请检查参数再调用退款申请\",\"result\":[{}],\"code\":\"\"}");
+					}
+					if("APPID_NOT_EXIST".equals(resultMap.get("err_code"))){
+							resp.getWriter().write("{\"msg\":\"APPID不存在\",\"result\":[{}],\"code\":\"\"}");
+					}
+					if("MCHID_NOT_EXIST".equals(resultMap.get("err_code"))){
+						resp.getWriter().write("{\"msg\":\"MCHID不存在\",\"result\":[{}],\"code\":\"\"}");
+					}
+					if("REQUIRE_POST_METHOD".equals(resultMap.get("err_code"))){
+						resp.getWriter().write("{\"msg\":\"请使用post方法\",\"result\":[{}],\"code\":\"\"}");
+					}
+					//签名错误
+					if("SIGNERROR".equals(resultMap.get("err_code"))){
+							resp.getWriter().write("{\"msg\":\"签名错误\",\"result\":[{}],\"code\":\"\"}");
+					}
+					if("XML_FORMAT_ERROR".equals(resultMap.get("err_code"))){
+						resp.getWriter().write("{\"msg\":\"XML格式错误\",\"result\":[{}],\"code\":\"\"}");
+					}
+				}else{
+					resp.getWriter().print(res);
+				}
+            }else{
+                res = "操作失败!";
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+            res = "操作失败";
+        } finally {
+            if(response != null){
+                response.close();
+            }
+            if(client != null){
+                client.close();
+            }
+        }
+        if(res.startsWith("<")){
+            resp.setHeader("Content-type", "text/xml;charset=UTF-8");
+        }else{
+            resp.setHeader("Content-type", "text/html;charset=UTF-8");
+        }
+        resp.getWriter().write(res);
+    }
+
+}

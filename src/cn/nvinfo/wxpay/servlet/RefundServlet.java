@@ -1,0 +1,363 @@
+package cn.nvinfo.wxpay.servlet;
+
+
+import java.io.IOException;
+import java.text.SimpleDateFormat;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.Map;
+
+import javax.servlet.ServletException;
+import javax.servlet.http.HttpServlet;
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
+
+import net.sf.json.JSONObject;
+
+import org.apache.log4j.Logger;
+import org.springframework.web.context.WebApplicationContext;
+import org.springframework.web.context.support.WebApplicationContextUtils;
+
+
+import cn.nvinfo.service.UserService;
+import cn.nvinfo.tools.CalendarPrice;
+import cn.nvinfo.utils.MD5;
+import cn.nvinfo.utils.SignUtils;
+import cn.nvinfo.utils.SwiftpassConfig;
+import cn.nvinfo.utils.XmlUtils;
+import cn.nvinfo.utils.SendPost;
+
+
+/**
+ * <一句话功能简述>
+ * <功能详细描述>退款
+ * 
+ * @author  Administrator
+ * @version  [版本号, 2014-8-29]
+ * @see  [相关类/方法]
+ * @since  [产品/模块版本]
+ */
+public class RefundServlet extends HttpServlet {
+	private static Logger log=Logger.getLogger(RefundServlet.class);
+	private static final long serialVersionUID = 1L;
+
+	@Override
+	protected void doGet(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
+		doPost(req, resp);
+	}
+
+	@Override
+	protected void doPost(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
+		req.setCharacterEncoding("utf-8");
+		resp.setCharacterEncoding("utf-8");
+		log.info("=====================================RefundServlet=====================================");
+		log.info("=====================================退款开始=====================================");
+		String out_trade_no=req.getParameter("out_trade_no");//订单表中的orderId
+
+		//Integer id=Integer.parseInt(req.getParameter("id"));//订单表中的id
+		String id=out_trade_no;
+		log.info("前端传过来的参数： 商户订单号out_trade_no(orderId)："+out_trade_no);
+		String out_refund_no=id.toString();
+		Double oldTotal_fee=Double.valueOf(req.getParameter("total_fee"));//标价金额
+		String total_fee=String.valueOf((int)(oldTotal_fee*100));
+
+		Double oldRefund_fee=Double.valueOf(req.getParameter("refund_fee"));//退款金额
+		String refund_fee=String.valueOf((int)(oldRefund_fee*100));
+		log.info("前端传过来的参数： 商户订单号out_trade_no(orderId)："+out_trade_no+",  out_refund_no订单在数据库中的id:"+out_refund_no+", 标价金额total_fee："+total_fee
+				+", 退款金额refund_fee:"+refund_fee);
+		//获取spring容器中的service
+		WebApplicationContext  ctx= WebApplicationContextUtils.getWebApplicationContext(this.getServletContext());
+		UserService userService = (UserService) ctx.getBean("userService");
+		int state= userService.selectOrderState(id);
+		//判断当前退款日期是否和出发日期useDate,若果当前日期大于出发日期，则过期不能退款
+		SimpleDateFormat sf = new SimpleDateFormat("yyyy-MM-dd");
+		String date = sf.format(new Date());
+		//获取订单的出发日期	2017-11-14
+		String useDate=userService.queryUseDate(id);
+		if(date.hashCode()-useDate.hashCode()>0) {
+			JSONObject obj=new JSONObject();
+			obj.put("result", false);
+			obj.put("code", "0");
+			obj.put("message", "该订单已过期，不能退款");
+			log.info("返回前端的数据："+obj.toString());
+			resp.getOutputStream().print(obj.toString());
+		}else {
+			if(state!=2){
+				//  SortedMap<String,String> map = XmlUtils.getParameterMap(req);
+				Map<String,String> map=new HashMap<String, String>();
+
+				String res = null;
+
+				String reqUrl = "https://api.mch.weixin.qq.com/secapi/pay/refund";
+
+				map.put("appid", "wxaea446e27328b87a");//公众账号id
+
+				map.put("mch_id", SwiftpassConfig.mch_id);//商户号
+
+				map.put("out_trade_no", out_trade_no);//商户订单号
+
+				map.put("out_refund_no", out_refund_no);//商户退款单号   商户系统内部唯一
+
+				map.put("total_fee", total_fee);//标价金额    微信的单位是分
+
+				map.put("refund_fee", refund_fee);//退款金额   微信的单位是分
+
+				map.put("nonce_str", String.valueOf(new Date().getTime()));//随即字符串
+
+				// Map<String,String> params = SignUtils.paraFilter(map);
+
+				StringBuilder buf = new StringBuilder((map.size() +1) * 10);
+				SignUtils.buildPayParams(buf,map,false);
+				String preStr = buf.toString();
+				String sign = MD5.sign(preStr, "&key=" + SwiftpassConfig.key, "utf-8");
+				map.put("sign", sign);//签名
+
+				try {
+					log.info("请求退款提交的签名："+sign);
+					log.info("请求退款发送给微信服务器的xml数据："+System.getProperty("line.separator")+XmlUtils.toXml(map));
+					//调证书向微信发起退款
+					String sendPost = SendPost.sendPost(reqUrl, XmlUtils.toXml(map));
+					if(sendPost != null){
+						byte[] bytes = sendPost.getBytes();
+						Map<String,String> resultMap = XmlUtils.toMap(bytes, "GB2312");
+						log.info("请求退款微信服务器返回的数据:"+System.getProperty("line.separator")+XmlUtils.toXml(resultMap));
+						// res = XmlUtils.toXml(resultMap);
+						if("SUCCESS".equals(resultMap.get("return_code"))){
+							if("SUCCESS".equals(resultMap.get("result_code"))){
+								int queryRefund = userService.selectOrderState(id);
+								if(queryRefund==3){
+									JSONObject obj=new JSONObject();
+									obj.put("result", true);
+									obj.put("code", "1");
+									obj.put("id", id);
+									obj.put("out_trade_no", out_trade_no);
+									obj.put("message", "退款成功");
+									log.info("返回前端的数据："+obj.toString());
+									resp.getOutputStream().print(obj.toString());
+								}else{
+									//在return_code为SUCCESS的时候,SUCCESS退款申请接收成功，结果通过退款查询接口查询
+									JSONObject obj=new JSONObject();
+									obj.put("result", true);
+									obj.put("code", "1");
+									obj.put("id", id);
+									obj.put("out_trade_no", out_trade_no);
+									obj.put("message", "提交退款成功");
+									log.info("返回前端的数据："+obj.toString());
+									resp.getOutputStream().print(obj.toString());
+									/*req.setAttribute("out_trade_no", out_trade_no);
+									req.getRequestDispatcher("/refundQueryServlet").forward(req, resp);*/
+									
+									/*log.info("返回前端的数据:"+"{\"msg\":\"提交退款成功\",\"result\":[{}],\"code\":\"\"}");
+	                			resp.getWriter().write("{\"msg\":\"提交退款成功\",\"result\":[{}],\"code\":\"\"}");*/
+								}
+							}else{
+								//退款业务流程错误，需要商户触发重试来解决 
+								if("BIZERR_NEED_RETRY ".equals(resultMap.get("err_code"))){
+									for (int i = 0; i < 1; i++) {
+										doPost(req,resp);
+									}
+									JSONObject obj=new JSONObject();
+									obj.put("result", false);
+									obj.put("code", "2");
+									obj.put("message", "退款业务失败，请重试");
+									obj.put("messageSelf", "退款业务流程错误，需要商户触发重试来解决");
+									log.info("返回前端的数据："+obj.toString());
+									resp.getOutputStream().print(obj.toString());
+									/*log.info("返回前端的数据:"+"{\"msg\":\"退款业务流程错误，需要商户触发重试来解决\",\"result\":[{}],\"code\":\"\"}");
+		                				resp.getWriter().write("{\"msg\":\"退款业务流程错误，需要商户触发重试来解决\",\"result\":[{}],\"code\":\"\"}");*/
+								}
+								//订单已经超过退款期限
+								if("TRADE_OVERDUE".equals(resultMap.get("err_code"))){
+									JSONObject obj=new JSONObject();
+									obj.put("result", false);
+									obj.put("code", "2");
+									obj.put("message", "订单已经超过退款期限，不能退款");
+									obj.put("messageSelf", "订单已经超过退款期限");
+									log.info("返回前端的数据："+obj.toString());
+									resp.getOutputStream().print(obj.toString());
+									/* log.info("返回前端的数据:"+"{\"msg\":\"订单已经超过退款期限\",\"result\":[{}],\"code\":\"\"}");
+										resp.getWriter().write("{\"msg\":\"订单已经超过退款期限\",\"result\":[{}],\"code\":\"\"}");*/
+								}
+								//业务错误
+								if("ERROR".equals(resultMap.get("err_code"))){
+									JSONObject obj=new JSONObject();
+									obj.put("result", false);
+									obj.put("code", "2");
+									obj.put("message", "业务错误");
+									obj.put("messageSelf", "业务错误");
+									log.info("返回前端的数据："+obj.toString());
+									resp.getOutputStream().print(obj.toString());
+									/* log.info("返回前端的数据:"+"{\"msg\":\"业务错误\",\"result\":[{}],\"code\":\"\"}");
+										resp.getWriter().write("{\"msg\":\"业务错误\",\"result\":[{}],\"code\":\"\"}");*/
+								}
+								//退款请求失败
+								if("USER_ACCOUNT_ABNORMAL".equals(resultMap.get("err_code"))){
+									JSONObject obj=new JSONObject();
+									obj.put("result", false);
+									obj.put("code", "2");
+									obj.put("message", "退款请求失败，请联系客服");
+									obj.put("messageSelf", "退款请求失败");
+									log.info("返回前端的数据："+obj.toString());
+									resp.getOutputStream().print(obj.toString());
+									/* log.info("返回前端的数据:"+"{\"msg\":\"退款请求失败\",\"result\":[{}],\"code\":\"\"}");
+										resp.getWriter().write("{\"msg\":\"退款请求失败\",\"result\":[{}],\"code\":\"\"}");*/
+								}
+								//系统错误
+								if("SYSTEMERROR".equals(resultMap.get("err_code"))){
+									for (int i = 0; i < 1; i++) {
+										doPost(req,resp);
+									}
+									JSONObject obj=new JSONObject();
+									obj.put("result", false);
+									obj.put("code", "2");
+									obj.put("message", "系统错误");
+									obj.put("messageSelf", "系统错误");
+									log.info("返回前端的数据："+obj.toString());
+									resp.getOutputStream().print(obj.toString());
+									/*log.info("返回前端的数据:"+"{\"msg\":\"系统错误\",\"result\":[{}],\"code\":\"\"}");
+										resp.getWriter().write("{\"msg\":\"系统错误\",\"result\":[{}],\"code\":\"\"}");*/
+								}
+								//无效请求过多
+								if("INVALID_REQ_TOO_MUCH".equals(resultMap.get("err_code"))||"MCHID_NOT_EXIST".equals(resultMap.get("err_code"))
+										||"LACK_PARAMS".equals(resultMap.get("err_code"))){
+									JSONObject obj=new JSONObject();
+									obj.put("result", false);
+									obj.put("code", "2");
+									obj.put("message", "网络异常，1分钟后再试");
+									obj.put("messageSelf", "请检查业务是否正常，确认业务正常后请在1分钟后再来重试");
+									log.info("返回前端的数据："+obj.toString());
+									resp.getOutputStream().print(obj.toString());
+									/*log.info("返回前端的数据:"+"{\"msg\":\"请检查业务是否正常，确认业务正常后请在1分钟后再来重试\",\"result\":[{}],\"code\":\"\"}");
+										resp.getWriter().write("{\"msg\":\"请检查业务是否正常，确认业务正常后请在1分钟后再来重试\",\"result\":[{}],\"code\":\"\"}");*/
+								}
+								//余额不足	 	此状态代表退款申请失败，商户可根据具体的错误提示做相应的处理。
+								if("NOTENOUGH".equals(resultMap.get("err_code"))){
+									JSONObject obj=new JSONObject();
+									obj.put("result", false);
+									obj.put("code", "2");
+									obj.put("message", "余额不足，请联系客服");
+									obj.put("messageSelf", "余额不足");
+									log.info("返回前端的数据："+obj.toString());
+									resp.getOutputStream().print(obj.toString());
+									/*log.info("返回前端的数据:"+"{\"msg\":\"余额不足\",\"result\":[{}],\"code\":\"\"}");
+										resp.getWriter().write("{\"msg\":\"余额不足\",\"result\":[{}],\"code\":\"\"}");*/
+								}
+								//无效transaction_id	请求参数错误，检查原交易号是否存在或发起支付交易接口返回失败
+								if("INVALID_TRANSACTIONID".equals(resultMap.get("err_code"))){
+									JSONObject obj=new JSONObject();
+									obj.put("result", false);
+									obj.put("code", "2");
+									obj.put("message", "系统错误，请联系客服");
+									obj.put("messageSelf", "无效transaction_id");
+									log.info("返回前端的数据："+obj.toString());
+									resp.getOutputStream().print(obj.toString());
+									/*log.info("返回前端的数据:"+"{\"msg\":\"无效transaction_id\",\"result\":[{}],\"code\":\"\"}");
+										resp.getWriter().write("{\"msg\":\"无效transaction_id\",\"result\":[{}],\"code\":\"\"}");*/
+								}
+								//参数错误
+								if("PARAM_ERROR".equals(resultMap.get("err_code"))){
+									JSONObject obj=new JSONObject();
+									obj.put("result", false);
+									obj.put("code", "2");
+									obj.put("message", "系统错误，请联系客服");
+									obj.put("messageSelf", "请求参数错误，请重新检查再调用退款申请");
+									log.info("返回前端的数据："+obj.toString());
+									resp.getOutputStream().print(obj.toString());
+									/*log.info("返回前端的数据:"+"{\"msg\":\"请求参数错误，请重新检查再调用退款申请\",\"result\":[{}],\"code\":\"\"}");
+										resp.getWriter().write("{\"msg\":\"请求参数错误，请重新检查再调用退款申请\",\"result\":[{}],\"code\":\"\"}");*/
+								}
+
+								//APPID不存在
+								if("APPID_NOT_EXIST".equals(resultMap.get("err_code"))){
+									JSONObject obj=new JSONObject();
+									obj.put("result", false);
+									obj.put("code", "2");
+									obj.put("message", "系统错误，请联系客服");
+									obj.put("messageSelf", "请检查APPID是否正确");
+									log.info("返回前端的数据："+obj.toString());
+									resp.getOutputStream().print(obj.toString());
+									/*log.info("返回前端的数据:"+"{\"msg\":\"请检查APPID是否正确\",\"result\":[{}],\"code\":\"\"}");
+										resp.getWriter().write("{\"msg\":\"请检查APPID是否正确\",\"result\":[{}],\"code\":\"\"}");*/
+								}
+								// 	MCHID不存在
+								if("MCHID_NOT_EXIST".equals(resultMap.get("err_code"))){
+									JSONObject obj=new JSONObject();
+									obj.put("result", false);
+									obj.put("code", "2");
+									obj.put("message", "系统错误，请联系客服");
+									obj.put("messageSelf", "请检查MCHID是否正确");
+									log.info("返回前端的数据："+obj.toString());
+									resp.getOutputStream().print(obj.toString());
+									/*log.info("返回前端的数据:"+"{\"msg\":\"请检查MCHID是否正确\",\"result\":[{}],\"code\":\"\"}");
+										resp.getWriter().write("{\"msg\":\"请检查MCHID是否正确\",\"result\":[{}],\"code\":\"\"}");*/
+								}
+								//请使用post方法
+								if("REQUIRE_POST_METHOD".equals(resultMap.get("err_code"))){
+									JSONObject obj=new JSONObject();
+									obj.put("result", false);
+									obj.put("code", "2");
+									obj.put("message", "系统错误，请联系客服");
+									obj.put("messageSelf", "请使用post方法");
+									log.info("返回前端的数据："+obj.toString());
+									resp.getOutputStream().print(obj.toString());
+									/*log.info("返回前端的数据:"+"{\"msg\":\" 请使用post方法\",\"result\":[{}],\"code\":\"\"}");
+										resp.getWriter().write("{\"msg\":\" 请使用post方法\",\"result\":[{}],\"code\":\"\"}");*/
+								}
+								//XML格式错误
+								if("XML_FORMAT_ERROR".equals(resultMap.get("err_code"))){
+									JSONObject obj=new JSONObject();
+									obj.put("result", false);
+									obj.put("code", "2");
+									obj.put("message", "系统错误，请联系客服");
+									obj.put("messageSelf", "XML格式错误");
+									log.info("返回前端的数据："+obj.toString());
+									resp.getOutputStream().print(obj.toString());
+									/*log.info("返回前端的数据:"+"{\"msg\":\"XML格式错误\",\"result\":[{}],\"code\":\"\"}");
+										resp.getWriter().write("{\"msg\":\"XML格式错误\",\"result\":[{}],\"code\":\"\"}");*/
+								}
+								//频率限制	2个月之前的订单申请退款有频率限制 
+								if("FREQUENCY_LIMITED ".equals(resultMap.get("err_code"))){
+									JSONObject obj=new JSONObject();
+									obj.put("result", false);
+									obj.put("code", "2");
+									obj.put("message", "该笔退款未受理，请降低频率后重试");
+									obj.put("messageSelf", "该笔退款未受理，请降低频率后重试");
+									log.info("返回前端的数据："+obj.toString());
+									resp.getOutputStream().print(obj.toString());
+									/*log.info("返回前端的数据:"+"{\"msg\":\"该笔退款未受理，请降低频率后重试\",\"result\":[{}],\"code\":\"\"}");
+										resp.getWriter().write("{\"msg\":\"该笔退款未受理，请降低频率后重试\",\"result\":[{}],\"code\":\"\"}");*/
+								}
+								//签名错误
+								if("SIGNERROR".equals(resultMap.get("err_code"))){
+									req.setAttribute("out_trade_no", out_trade_no);
+									req.getRequestDispatcher("/closeOrderServlet").forward(req, resp);
+								}
+							}
+						}else{
+							JSONObject obj=new JSONObject();
+							obj.put("result", false);
+							obj.put("code", "0");
+							obj.put("message", resultMap.get("return_msg"));
+							log.info("返回前端的数据："+obj.toString());
+							resp.getOutputStream().print(obj.toString());
+						}
+					}
+
+				} catch (Exception e) {
+					e.printStackTrace();
+					res = "操作失败";
+				}
+			}else{
+				JSONObject obj=new JSONObject();
+				obj.put("result", false);
+				obj.put("code", "0");
+				obj.put("message", "订单已核销，不可退");
+				log.info("返回前端的数据："+obj.toString());
+				resp.getOutputStream().print(obj.toString());
+			}
+		}    
+		log.info("=====================================退款结束=====================================");
+		// resp.getWriter().write(res);
+	}
+
+}
