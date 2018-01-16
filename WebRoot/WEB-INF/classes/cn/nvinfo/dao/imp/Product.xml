@@ -208,9 +208,13 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
   	
   	<!-- 修改的数据回显   	杨立	2017-09-25 -->
   	<select id="getById" resultType="cn.nvinfo.domain.Product">
-  		select  p.id,p.view_id as viewId,p.supplier_id as supplierId,p.ticketType,p.priority_id priorityId,p.customName,p.name,p.endPrice,p.marketPrice,p.salePrice,p.isSale,p.startTime,
-  		p.endTime,p.dailySale,p.num,p.orderTime,p.isCancel,p.type,p.notice,p.costInside,p.costOutside,p.remark,p.userType,p.priorityType,p.method,p.customId,c.datePrice datePrice,p.random_calendar from product p
+  		select  p.id,p.view_id as viewId,p.supplier_id as supplierId,p.ticketType,t.name ticketTypeName,p.priority_id priorityId,p.customName,p.name,p.endPrice,p.marketPrice,p.salePrice,p.isSale,p.startTime,
+  		p.endTime,p.dailySale,p.num,p.orderTime,p.isCancel,p.type,p.notice,p.costInside,p.costOutside,p.remark,p.userType,p.priorityType,p.method,p.customId,c.datePrice datePrice,p.random_calendar,
+		pri.name priorityType,cus.name customName from product p
   		left join calendar c on c.product_id=p.id
+		left join ticketType t on t.id=p.ticketType
+		left join priority pri  on pri.id=p.priority_id
+		left join custom cus  on cus.id=p.customId
   		where p.id=#{id}
   	</select>
   	<!-- 根据id获得景区名字 -->

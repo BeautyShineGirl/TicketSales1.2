@@ -55,11 +55,11 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
 				and name like '%${name}%'
 		</if>
 		<if test=" linkName !=null and linkName!=''">
-				and linkName like '%${linkName}%'
+				and linkMan like '%${linkName}%'
 		</if>
 	
 		<if test="custType !=null and custType!=''">
-				and custType like '%${custType}%'
+				and custType like '${custType}'
 		</if>
 		
   	</sql>

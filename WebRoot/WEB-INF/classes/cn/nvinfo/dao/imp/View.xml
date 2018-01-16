@@ -73,7 +73,7 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
 				and v.name like '%${viewName}%'
 		</if>
 		<if test=" level !=null and level!=''">
-				and v.level like '%${level}%'
+				and v.level like '${level}'
 		</if>
 		<if test=" viewType!=null and viewType!=''">
 				and v.type like '%${viewType}%'
@@ -140,7 +140,7 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
 				and v.name like '%${viewName}%'
 		</if>
 		<if test=" level !=null and level!=''">
-				and v.level like '%${level}%'
+				and v.level like '${level}'
 		</if>
 		<if test=" viewType!=null and viewType!=''">
 				and v.type like '%${viewType}%'
