@@ -213,4 +213,21 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
   	<select id="getProduct" resultType="int">
 		select count(*) from product where view_id=#{id}
   	</select>
+  	<!-- //根据random_no查出原本的oldUrl	yangli	2017-12-25-->
+  	<select id="getOldUrl" resultType="java.lang.String">
+  		select picture from viewMessage where random_no=#{random_no}
+  	</select>
+  	<!-- //先查询数据库中是否存在这个随机数，若存在，则不进行添加随机数-->
+  	<select id="getRandom_no" resultType="java.lang.String">
+  		select random_no from viewMessage where random_no=#{random_no}
+  	</select>
+  	
+  	<!-- 添加产品的随机数-->
+  	<insert id="addRandom_no" parameterType="cn.nvinfo.domain.ViewMessage" useGeneratedKeys="true">
+  		insert into viewMessage (random_no) values(#{random_no})
+  	</insert>
+  	<!-- //修改图片路径	2017-12-25	杨立 -->
+  	<update id="updateUrl" parameterType="cn.nvinfo.domain.ViewMessage" useGeneratedKeys="true">
+  		update viewMessage set picture=#{newUrl} where random_no=#{random_no}
+  	</update>
 </mapper>

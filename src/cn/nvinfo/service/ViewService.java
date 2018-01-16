@@ -91,5 +91,13 @@ public interface ViewService {
 	 * 将view表中的picture表为空	yangli	2017-10-27
 	 */
 	int delPicture(Integer id);
+	//先查询数据库中是否存在这个随机数，若存在，则不进行添加随机数	2018-01-12
+	List<String> getRandom_no(String random_no);
+	//先添加产品随机数，就相当于添加了一个产品，然后在对这个产品进行修改url	2018-01-12
+	int addRandom_no(String random_no);
+	//根据random_no查出原本的oldUrl	yangli	2018-01-12
+	List<String> getOldUrl(String random_no);
+	//修改图片路径	2018-01-12	杨立
+	int updateUrl(String random_no, String newUrl);
 
 }

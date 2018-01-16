@@ -140,104 +140,6 @@ public class ViewAction {
 		log.info(new Result(1,"查询成功",vd));
 		return new Result(1,"查询成功",vd);
 	}
-	
-	/**
-	 * 添加景区信息    杨立   2017-09-20    完成状态，批量上传，需大批测试
-	 * @param view
-	 * @param request
-	 * @param file
-	 * @return
-	 */
-	@RequestMapping(value="/add.action")
-	public @ResponseBody Object add(ViewMessage view ,@RequestParam("file")MultipartFile[] file,HttpServletRequest request/*MultipartFile file,*/){
-		String name= view.getName();
-		String level=view.getLevel();
-		String viewType=view.getType();
-		String address=view.getAddress();
-		String businessTime=view.getBusinessTime();
-		String phone=view.getPhone();
-		String reminder=view.getReminder(); 
-		String discount=view.getDiscount();
-		String busMessage=view.getBusMessage();
-		String selfRoute=view.getSelfRoute();		
-		Integer staffId = view.getStaffId();
-		//根据staffId查名字	杨立	2017-10-26
-		view.setStaffName(viewService.getByStaffId(staffId));
-		Double lng =view.getLng();
-		Double lat=view.getLat();
-		Integer sort=view.getSort();
-		String province=view.getProvince();
-		String city=view.getCity();
-	/*	//验证参数
-		if(!"".equals(CheckUtil.checkArgsNotNull(name,level,viewType,address,businessTime,
-				phone,discount,staffId,lng,lat,sort,province,city))){
-			log.info(new Result(0,"参数错误"));
-			return new Result(0,"参数错误");
-		}
-*/
-		log.info("添加提交条件： name="+name+", level="+level+", viewType="+viewType+", address="+address+", businessTime="+businessTime+", phone="+phone+", reminder="+reminder+", discount="+discount
-				+", busMessage="+busMessage+", selfRoute="+selfRoute+", staffId="+staffId+", lng="+lng+", lat="+lat+", sort="+sort+", province="+province+", city="+city);
-		String picture=null;
-		//上传图片
-		if(file.length==0){
-			log.info(new Result(0,"参数错误，请添加照片"));
-			return new Result(0,"参数错误，请添加照片");
-		}
-		MultipartFile multipartFile = null;
-		for (int i=0;i<file.length; i++) {
-			multipartFile = file[i];
-			String iconName=multipartFile.getOriginalFilename();
-			//保存文件  
-			saveFile(multipartFile,request);  
-			//保存获取文件的路径
-			if(picture==null||picture.equals("")){
-				picture=new SimpleDateFormat("yyyyMMddhhmmss").format(new Date())+iconName;
-			}else{
-				picture=picture+","+new SimpleDateFormat("yyyyMMddhhmmss").format(new Date())+iconName;
-			}
-        }
-		
-        //设置图片属性
-        view.setPicture(picture);
-        //添加操作
-        
-        int rows= viewService.add(view);
-        if(rows>0){
-        	log.info(new Result(1,"添加成功"));
-        	return new Result(1,"添加成功");
-        } else {
-        	log.info(new Result(0,"添加失败"));
-        	return new Result(0,"添加失败");
-        } 
-	}
-	/*** 
-	 * 保存文件 
-	 * @param file 
-	 * @return 
-	 */  
-	public boolean saveFile(MultipartFile file,HttpServletRequest request) {  
-		String iconName=file.getOriginalFilename();
-		// 校验图片格式  
-		// 处理获取到的上传文件的文件名的路径部分，只保留文件名部分  
-		String lastName = iconName.substring(iconName.lastIndexOf("\\") + 1);  
-		// 得到上传文件的扩展名  
-		String fileExtName = lastName.substring(lastName.lastIndexOf(".") + 1);//doc,docx,pdf
-		// 校验图片格式 	这段代码没有测试
-		if("bmp".equalsIgnoreCase(fileExtName)||"jpg".equalsIgnoreCase(fileExtName)||
-				"jpeg".equalsIgnoreCase(fileExtName)||"gif".equalsIgnoreCase(fileExtName)||"png".equalsIgnoreCase(fileExtName)){
-			//获取上传文件的路径
-			String src=request.getSession().getServletContext().getRealPath("upload/images/")+File.separator;
-			String path=src+new SimpleDateFormat("yyyyMMddhhmmss").format(new Date())+iconName;
-			File newFile=new File(path);
-			try {
-				file.transferTo(newFile);
-			} catch (Exception e) {
-				e.printStackTrace();
-			} 
-			
-		}
-		return false; 	
-	}
 	/**
 	 * 修改数据回显  杨立  2017-09-21 
 	 * @param id
@@ -274,6 +176,117 @@ public class ViewAction {
 		log.info(new Result(1,"查询成功",view));
 		return new Result(1,"查询成功",view);
 	}
+	/**
+	 * 添加景区信息    杨立   2017-09-20    完成状态，批量上传，需大批测试
+	 * @param view
+	 * @param request
+	 * @param file
+	 * @return
+	 */
+	@RequestMapping(value="/addUpdate.action")
+	public @ResponseBody Object addUpdate(ViewMessage view ){
+		String name= view.getName();
+		String level=view.getLevel();
+		String viewType=view.getType();
+		String address=view.getAddress();
+		String businessTime=view.getBusinessTime();
+		String phone=view.getPhone();
+		String reminder=view.getReminder(); 
+		String discount=view.getDiscount();
+		String busMessage=view.getBusMessage();
+		String selfRoute=view.getSelfRoute();		
+		Integer staffId = view.getStaffId();
+		//根据staffId查名字	杨立	2017-10-26
+		view.setStaffName(viewService.getByStaffId(staffId));
+		Double lng =view.getLng();
+		Double lat=view.getLat();
+		Integer sort=view.getSort();
+		String province=view.getProvince();
+		String city=view.getCity();
+		//验证参数
+		if(!"".equals(CheckUtil.checkArgsNotNull(name,level,viewType,address,businessTime,
+				phone,discount,staffId,lng,lat,sort,province,city))){
+			log.info(new Result(0,"参数错误"));
+			return new Result(0,"参数错误");
+		}
+
+		log.info("添加提交条件： name="+name+", level="+level+", viewType="+viewType+", address="+address+", businessTime="+businessTime+", phone="+phone+", reminder="+reminder+", discount="+discount
+				+", busMessage="+busMessage+", selfRoute="+selfRoute+", staffId="+staffId+", lng="+lng+", lat="+lat+", sort="+sort+", province="+province+", city="+city);
+        //添加操作
+        int rows= viewService.add(view);
+        if(rows>0){
+        	log.info(new Result(1,"添加成功"));
+        	return new Result(1,"添加成功");
+        } else {
+        	log.info(new Result(0,"添加失败"));
+        	return new Result(0,"添加失败");
+        } 
+	}
+	/*
+	 * 后台管理      添加抢购产品的图片上传到服务器
+	 */ 
+	@RequestMapping("/addImages.action")
+	public @ResponseBody Object addImages(MultipartFile file,HttpServletRequest request,String random_no){
+		String newUrl=null;
+		//先查询数据库中是否存在这个随机数，若存在，则不进行添加随机数	2018-01-12
+		List<String> random_no_old=viewService.getRandom_no(random_no);
+		if(random_no_old.size()==0){
+			//先添加产品随机数，就相当于添加了一个产品，然后在对这个产品进行修改url	2018-01-12
+			viewService.addRandom_no(random_no);
+		}
+		String iconName=file.getOriginalFilename();
+
+		//根据random_no查出原本的oldUrl	yangli	2018-01-12
+		List<String> oldUrl=viewService.getOldUrl(random_no);
+		//保存文件  
+		saveFile(file,request);  
+		if(oldUrl.size()!=0){
+			//保存获取文件的路径
+			if(oldUrl.get(0)==null||oldUrl.get(0).equals("")){
+				newUrl=new SimpleDateFormat("yyyyMMddhhmmss").format(new Date())+iconName;
+			}else{
+				newUrl=oldUrl.get(0)+","+new SimpleDateFormat("yyyyMMddhhmmss").format(new Date())+iconName;
+			}
+		}
+		//修改图片路径	2018-01-12	杨立
+		int rows= viewService.updateUrl(random_no,newUrl);
+		if(rows>0){
+			log.info(new Result(1,"上传成功"));
+			return new Result(1,"上传成功");
+		} else {
+			log.info(new Result(0,"上传失败"));
+			return new Result(0,"上传失败");
+		} 
+	}
+	/*** 
+	 * 保存文件 
+	 * @param file 
+	 * @return 
+	 */  
+	public boolean saveFile(MultipartFile file,HttpServletRequest request) {  
+		String iconName=file.getOriginalFilename();
+		// 校验图片格式  
+		// 处理获取到的上传文件的文件名的路径部分，只保留文件名部分  
+		String lastName = iconName.substring(iconName.lastIndexOf("\\") + 1);  
+		// 得到上传文件的扩展名  
+		String fileExtName = lastName.substring(lastName.lastIndexOf(".") + 1);//doc,docx,pdf
+		// 校验图片格式 	这段代码没有测试
+		if("bmp".equalsIgnoreCase(fileExtName)||"jpg".equalsIgnoreCase(fileExtName)||
+				"jpeg".equalsIgnoreCase(fileExtName)||"gif".equalsIgnoreCase(fileExtName)||"png".equalsIgnoreCase(fileExtName)){
+			//获取上传文件的路径
+			String src=request.getSession().getServletContext().getRealPath("upload/images/")+File.separator;
+			String path=src+new SimpleDateFormat("yyyyMMddhhmmss").format(new Date())+iconName;
+			File newFile=new File(path);
+			try {
+				file.transferTo(newFile);
+			} catch (Exception e) {
+				e.printStackTrace();
+			} 
+			
+		}
+		return false; 	
+	}
+	
 	
 	/**
 	 * 修改	杨立	2017-09-21

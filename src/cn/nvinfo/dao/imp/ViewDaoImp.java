@@ -224,7 +224,25 @@ public class ViewDaoImp implements ViewDao {
 	public int delPicture(Integer id) {
 		return template.update("view.delPicture",id);
 	}
-	
+	//先查询数据库中是否存在这个随机数，若存在，则不进行添加随机数 2018-01-12
+	public List<String> getRandom_no(String random_no) {
+		return template.selectList("view.getRandom_no", random_no);
+	}
+	//先添加产品随机数，就相当于添加了一个产品，然后在对这个产品进行修改url 2018-01-12
+	public int addRandom_no(String random_no) {
+		return template.insert("view.addRandom_no", random_no);
+	}
+	//根据random_no查出原本的oldUrl	yangli	2018-01-12
+	public List<String> getOldUrl(String random_no) {
+		return template.selectList("view.getOldUrl", random_no);
+	}
+	//修改图片路径	2018-01-12	杨立
+	public int updateUrl(String random_no, String newUrl) {
+		Map<String,Object> map=new HashMap<String,Object>();
+		map.put("random_no", random_no);
+		map.put("newUrl", newUrl);
+		return template.update("view.updateUrl", map);
+	}
 	
 	
 

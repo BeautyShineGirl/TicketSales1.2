@@ -32,6 +32,7 @@ public class ViewMessage {
 	private String city;//所属城市
 	private List<String> pic;
 	
+	private String random_no;
 	
 	public ViewMessage() {
 		super();
@@ -162,6 +163,12 @@ public class ViewMessage {
 	}
 	public void setPic(List<String> pic) {
 		this.pic = pic;
+	}
+	public String getRandom_no() {
+		return random_no;
+	}
+	public void setRandom_no(String random_no) {
+		this.random_no = random_no;
 	}
 	
 }
