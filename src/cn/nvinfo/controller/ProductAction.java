@@ -476,7 +476,7 @@ public class ProductAction {
 					newDatePrice=newDatePrice+"|"+date+"&"+df.format(salePrice);
 				}
 			}
-		}else if(partPrice!=null&&!"".equals("")){
+		}else if(partPrice!=null){
 			
 			/*
 			 * 如果salePrice等于原来的销售价，且partPrice不等于null时，认为是个别日期的销售价修改，这个时候修改calendar表中的个别日期所对应的销售价

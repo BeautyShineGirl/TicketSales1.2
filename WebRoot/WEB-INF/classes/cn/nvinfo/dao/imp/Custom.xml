@@ -10,12 +10,14 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
   	
   	<!-- 获得当前页的数据 	杨立	2017-09-27-->
   	<select id="getPageDate" resultType="cn.nvinfo.tools.CustomList">
-	select id,name,custType typeName,level,phone,linkMan,creditLimit,cashMoney,state from custom 
-	<include refid="getSql"></include>  order by id asc limit #{pageIndex},#{pageSize}
+	select c.id,c.name,ct.name typeName,c.level,c.phone,c.linkMan,c.creditLimit,c.cashMoney,c.state from custom c
+	left join customType ct on ct.id=c.custType 
+	<include refid="getSql"></include> 
+	 order by id asc limit #{pageIndex},#{pageSize}
   	</select>
   	<sql id="getSql">
   		<where>
-  			1=1
+  			1=1 
   		</where>
 		<if test=" id !=null and id!=''">
 			<choose>
@@ -119,7 +121,7 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
   	
   	<!-- 合同管理数据回显	杨立	2017-09-28-->
   	<select id="getCuseom" resultType="cn.nvinfo.domain.Custom">
-  		select * from custom<!--  where gender is null -->
+  		select * from custom  where gender is null 
   	</select>
   	<!--合同上传	杨立	2017-09-28-->
   	<update id="upditURL" parameterType="cn.nvinfo.domain.Custom" useGeneratedKeys="true">
@@ -134,4 +136,12 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
   	<delete id="delete" parameterType="cn.nvinfo.domain.Custom">
   		delete from custom where id=#{id}
   	</delete>
+  	<!--//根据分销商id查询分销商的信息	杨立	2018-01-16-->
+  	<select id="getUrlList" resultType="cn.nvinfo.domain.Custom">
+  		select * from custom where gender is null and id=#{id}
+  	</select>
+  		<!--//根据分销商id查询分销商的url信息	杨立	2018-01-16-->
+  	<select id="getUrl" resultType="java.lang.String">
+  		select url from custom where gender is null and id=#{id}
+  	</select>
 </mapper>

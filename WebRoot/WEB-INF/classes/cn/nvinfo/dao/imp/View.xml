@@ -189,8 +189,8 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
   	<update id="edit" parameterType="cn.nvinfo.domain.ViewMessage" useGeneratedKeys="true">
   		update viewMessage set staff_id=#{staffId},name=#{name},level=#{level},type=#{type},remark=#{remark},
   		address=#{address},businessTime=#{businessTime},phone=#{phone},reminder=#{reminder},discount=#{discount},
-  		busMessage=#{busMessage},selfRoute=#{selfRoute},picture=#{picture},lng=#{lng},lat=#{lat},province=#{province},
-  		city=#{city},sort=#{sort},staffName=#{staffName} where id=#{id} 
+  		busMessage=#{busMessage},selfRoute=#{selfRoute},lng=#{lng},lat=#{lat},province=#{province},
+  		city=#{city},sort=#{sort},staffName=#{staffName} where random_no=#{random_no} 
   	</update>
   	
   		<!-- 将view表中的picture表为空	yangli	2017-10-27-->
@@ -201,7 +201,7 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
   	<!-- 修改的数据回显   	杨立	2017-09-21 -->
   	<select id="getById" resultType="cn.nvinfo.domain.ViewMessage">
   		select id, staff_id staffId,name,level,type,remark, address,businessTime,phone,reminder,discount,
-  		busMessage,selfRoute,picture,lng,lat,province,city,sort,staffName from viewMessage where id=#{id}
+  		busMessage,selfRoute,picture,lng,lat,province,city,sort,staffName,random_no from viewMessage where id=#{id}
   	</select>
   	
   	<!-- 删除   杨立   2017-09-20	-->
