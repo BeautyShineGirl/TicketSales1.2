@@ -1,0 +1,25 @@
+package cn.nvinfo.service.imp;
+
+import javax.annotation.Resource;
+
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import cn.nvinfo.dao.JuntuDao;
+import cn.nvinfo.domain.Product;
+import cn.nvinfo.domain.ViewMessage;
+import cn.nvinfo.service.JuntuService;
+@Service("juntuService")
+@Transactional
+public class JuntuServiceImp implements JuntuService {
+	@Resource
+	private JuntuDao jtd;
+	//添加骏图景区到数据库	2018-01-25
+	public int addView(ViewMessage view) {
+		return jtd.addView(view);
+	}
+	//添加骏图产品到数据库	2018-01-26
+	public int addProduct(Product product) {
+		return jtd.addProduct(product);
+	}
+}

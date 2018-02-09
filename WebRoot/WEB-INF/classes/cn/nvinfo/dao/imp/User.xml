@@ -209,8 +209,24 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
 		order by prt.priority 
   	</select>
   	
+  		<!-- //根据关键词查询景区	杨立	2018-01-29 -->
+  	<select id="getKeyWordView" resultType="cn.nvinfo.domain.ViewMessage" parameterType="String">
+		select id,name from viewMessage 
+		
+		where 1=1
+		<if test = " _parameter!=null and _parameter!='' ">
+			and name like '%${_parameter}%'
+		</if>
+		
+		order by sort
+  	</select>
   	
   	<!-- 修改首页为景区，点击图片后为产品列表	2017-11-08 -->
+  	<!--//获得景区的最低价	2018-01-29	yangli-->
+  	<select id="getMinPrice" resultType="java.lang.Double">
+		select min(CAST(salePrice AS signed)) from product where view_id=#{id}
+  	</select>
+  	
   	<!--特别推荐	 获得sort为1的景区的集合	杨立	2017-11-08-->
   	<select id="getExpeciallyView" resultType="cn.nvinfo.domain.ViewMessage">
 		select * from viewMessage where sort=1 order by sort
@@ -297,5 +313,19 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
   	<!--//退款成功，更新SupplierOrderState -->
   	<update id="updateSuplierState" parameterType="cn.nvinfo.domain.Order" useGeneratedKeys="true">
   		update orderTable set supplierOrderState=#{supplierOrderState} where product_id=#{productId} 
+  	</update>
+  	
+  		<!--//查骏图的产品编号，juntuPId	2018-02-08-->
+  	<select id="getJuntuPId" resultType="cn.nvinfo.domain.Product">
+		select * from product where id= #{productId}
+  	</select>
+  	<!-- //根据订单orderId保存订单流水号	yangli	2018-02-08  -->
+  	<update id="updateRefundId" parameterType="cn.nvinfo.domain.Order" useGeneratedKeys="true">
+  		update orderTable set refundId=#{refundId} where orderId=#{orderId} 
+  	</update>
+  	
+  	<!--//将骏图返回的退款结果存入数据库	2018-02-08	yangli -->
+  	<update id="updateRefund" parameterType="cn.nvinfo.domain.Order" useGeneratedKeys="true">
+  		update orderTable set supplierOrderState=#{supplierOrderState},requestTime=#{requestTime},responseTime=#{responseTime} where orderId=#{orderId} 
   	</update>
 </mapper>

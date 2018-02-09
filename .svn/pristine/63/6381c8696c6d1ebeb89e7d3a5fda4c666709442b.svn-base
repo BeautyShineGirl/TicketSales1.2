@@ -1,0 +1,12 @@
+package cn.nvinfo.dao;
+
+import cn.nvinfo.domain.Product;
+import cn.nvinfo.domain.ViewMessage;
+
+public interface JuntuDao {
+	//添加骏图景区到数据库	2018-01-25
+	int addView(ViewMessage view);
+	//添加骏图产品到数据库	2018-01-26
+	int addProduct(Product product);
+
+}

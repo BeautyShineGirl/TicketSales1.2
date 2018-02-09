@@ -1,0 +1,8 @@
+0000000000000000000000000000000000000000 99a861c6d95a401676f3592f57afabddbf9818f4 BeautyShine <YangLiEmails@163.com> 1515035706 +0800	commit (initial): 版本1.2 添加抢购产品功能模块，新浪潮供应商下单、支付、退款测试完成
+99a861c6d95a401676f3592f57afabddbf9818f4 417105a034cb9e0de1770ad99e60e10bd83de56f BeautyShine <YangLiEmails@163.com> 1515048516 +0800	commit: 修改产品的销售价与价格日历中的销售价
+417105a034cb9e0de1770ad99e60e10bd83de56f 50fa1aa2bab8a039c3f8f28709a90d7c45952308 BeautyShine <YangLiEmails@163.com> 1515489310 +0800	commit: 支付宝支付未支付点查看订单 逻辑修改
+50fa1aa2bab8a039c3f8f28709a90d7c45952308 525cb6ad1920cb3e85bd03165804d73bae106b27 BeautyShine <YangLiEmails@163.com> 1516007427 +0800	commit: 无数据回显返回
+525cb6ad1920cb3e85bd03165804d73bae106b27 d3780598e8ea73160f3a7e9c56ff3801296d6b19 BeautyShine <YangLiEmails@163.com> 1516088635 +0800	commit: 产品的editUI回显
+d3780598e8ea73160f3a7e9c56ff3801296d6b19 853ddd0d84984a10f898879e9f4e823b6d4ee472 BeautyShine <YangLiEmails@163.com> 1516090702 +0800	commit: 修改产品未做任何修改时的逻辑
+853ddd0d84984a10f898879e9f4e823b6d4ee472 e4949ab278fa66128c9e2ae2b16cf6b683f077f6 BeautyShine <YangLiEmails@163.com> 1516172773 +0800	commit: 版本1.3完整版
+e4949ab278fa66128c9e2ae2b16cf6b683f077f6 92e088215226b7de4b4715149ff25f281b9e863f BeautyShine <YangLiEmails@163.com> 1516344248 +0800	commit: 产品修改时，修改销售价之外的逻辑

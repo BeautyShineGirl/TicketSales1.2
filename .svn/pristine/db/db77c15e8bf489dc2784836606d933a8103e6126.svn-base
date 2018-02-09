@@ -1,0 +1,64 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="juntu">
+  	
+  	
+  	<!-- 添加骏图景区  杨立 2018-01-25-->
+  	<insert id="addView" parameterType="cn.nvinfo.domain.ViewMessage" useGeneratedKeys="true">
+  		insert into viewMessage (name,level, address,lng,lat,city,sort,juntuId,remark) 
+  						values(#{name},#{level},#{address},#{lng},#{lat},#{city},#{sort},#{juntuId},#{remark})
+  	</insert>
+ 
+  	<!-- //添加骏图产品到数据库	2018-01-26-->
+  	<insert id="addProduct" parameterType="cn.nvinfo.domain.Product" useGeneratedKeys="true">
+  		insert into product (random_calendar,view_id,supplier_id,ticketType,priority_id,customName, name,endPrice,marketPrice,salePrice,isSale,startTime,
+  		endTime,dailySale,num,orderTime,isCancel,type,notice,costInside,costOutside,remark,userType,priorityType,method,customId,juntuPId,juntuTType,max_min_buy,
+  		validityDays,validityType,refundRule,visitorMode) 
+  		values(#{random_calendar},#{viewId},#{supplierId},#{ticketType},#{priorityId},#{customName},#{name},#{endPrice},#{marketPrice},#{salePrice},
+  		#{isSale},#{startTime},#{endTime},#{dailySale},#{num},#{orderTime},#{isCancel},#{type},#{notice},#{costInside},
+  		#{costOutside},#{remark},#{userType},#{priorityType},#{method},#{customId},#{juntuPId},#{juntuTType},#{max_min_buy},#{validityDays},#{validityType},
+  		#{refundRule},#{visitorMode})
+  	</insert>
+  	<!--//修改从 产品表中的信息		yangli 2018-02-09  -->
+  	<update id="editProduct" parameterType="cn.nvinfo.domain.Product" useGeneratedKeys="true">
+  		update product set view_id=#{viewId},supplier_id=#{supplierId},ticketType=#{ticketType},priority_id=#{priorityId},customName=#{customName},
+  		name=#{name},endPrice=#{endPrice},marketPrice=#{marketPrice},salePrice=#{salePrice},isSale=#{isSale},startTime=#{startTime},
+  		endTime=#{endTime},dailySale=#{dailySale},num=#{num},orderTime=#{orderTime},isCancel=#{isCancel},type=#{type},
+  		notice=#{notice},costInside=#{costInside},costOutside=#{costOutside},remark=#{remark},userType=#{userType},
+  		priorityType=#{priorityType},method=#{method},customId=#{customId},juntuTType=#{juntuTType},max_min_buy=#{max_min_buy},
+  		validityDays=#{validityDays},validityType=#{validityType},refundRule=#{refundRule},visitorMode=#{visitorMode} where juntuPId=#{juntuPId} 
+  	</update>
+  	
+  	<!-- //从产品表中获取产品的id的集合	yangli 2018-01-29 -->
+  	<select id="getJuntuIdList" resultType="cn.nvinfo.domain.Product">
+  		select * from product  where juntuPId is not null
+  	</select>
+  	<!-- //先从数据库中查是否有这个juntuId，如果有，则不存入数据库，如果没有，则存		yangli	2018-01-31 -->
+  	<select id="getJuntuId" resultType="cn.nvinfo.domain.ViewMessage">
+  		select * from viewMessage where juntuId=#{juntuId}
+  	</select>
+  	
+  	<!-- //根据juntuPId查询数据库中的信息，若存在，则不存进数据库，若不存在，则存	杨立2018-01-31-->
+  	<select id="getProduct" resultType="cn.nvinfo.domain.Product">
+  		select * from product where juntuPId=#{juntuPId}
+  	</select>
+  	
+  	<!-- //将第一天的销售价，结算价，数量放入产品表中	yangli	2018-01-31-->
+  	<update id="addPriceNum" parameterType="cn.nvinfo.domain.Product" useGeneratedKeys="true">
+  		update product set salePrice=#{salePrice},endPrice=#{endPrice},num=#{num} where juntuPId=#{juntuPId}
+  	 
+  	</update>
+  	
+  	<!-- //添加价格日期到价格日期表	2018-01-31	yangli-->
+  	<update id="saveCalendar" parameterType="cn.nvinfo.domain.CalendarPriceTable" useGeneratedKeys="true">
+  		update calendar set datePrice=#{datePrice} where product_id = (select id from product where juntuPId=#{juntuPid})
+  	</update>
+  	
+  		<!-- //将pid存入价格日历表	2018-01-31	杨立-->
+  	<insert id="addCalendarPid" parameterType="cn.nvinfo.domain.CalendarPriceTable" useGeneratedKeys="true">
+  		insert into calendar (product_id) 
+  						values(#{pid})
+  	</insert>
+</mapper>

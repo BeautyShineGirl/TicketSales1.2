@@ -1,0 +1,9 @@
+package cn.nvinfo.service;
+
+import cn.nvinfo.domain.ViewMessage;
+
+public interface JuntuService {
+	//添加骏图景区到数据库	2018-01-25
+	int addView(ViewMessage view);
+
+}

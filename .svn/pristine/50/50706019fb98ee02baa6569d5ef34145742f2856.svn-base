@@ -1,0 +1,18 @@
+package cn.nvinfo.dao.imp;
+
+import javax.annotation.Resource;
+
+import org.mybatis.spring.SqlSessionTemplate;
+import org.springframework.stereotype.Repository;
+
+import cn.nvinfo.dao.JuntuDao;
+import cn.nvinfo.domain.ViewMessage;
+@Repository
+public class JuntuDaoImp implements JuntuDao {
+	@Resource
+	private SqlSessionTemplate template;
+
+	public int addView(ViewMessage view) {
+		return template.insert("juntu.addView", view);
+	}
+}

@@ -144,4 +144,18 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
   	<select id="getUrl" resultType="java.lang.String">
   		select url from custom where gender is null and id=#{id}
   	</select>
+  	
+  	<!--//将验证码存入数据库  用于找回密码	杨立	2018-01-30-->
+  	<update id="addCode" parameterType="cn.nvinfo.domain.Custom" useGeneratedKeys="true">
+  		update custom set code=#{code} where userName=#{userName} 
+  	</update>
+  	
+  		<!--//查询库中code	2018-01-30	杨立-->
+  	<select id="findCode" resultType="java.lang.String">
+  		select code from custom where userName=#{userName}
+  	</select>
+  		<!--//将新密码存入数据库	杨立	2018-01-30-->
+  	<update id="updatePassword" parameterType="cn.nvinfo.domain.Custom" useGeneratedKeys="true">
+  		update custom set password=#{password} where userName=#{userName} 
+  	</update>
 </mapper>

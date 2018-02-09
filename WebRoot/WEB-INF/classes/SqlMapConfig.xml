@@ -27,6 +27,7 @@ PUBLIC "-//mybatis.org//DTD Config 3.0//EN"
      <mapper resource="cn/nvinfo/dao/imp/Order.xml"/>
      <mapper resource="cn/nvinfo/dao/imp/Staff.xml"/>
      <mapper resource="cn/nvinfo/dao/imp/HotProduct.xml"/>
+     <mapper resource="cn/nvinfo/dao/imp/Juntu.xml"/>
    </mappers>
   
 </configuration>

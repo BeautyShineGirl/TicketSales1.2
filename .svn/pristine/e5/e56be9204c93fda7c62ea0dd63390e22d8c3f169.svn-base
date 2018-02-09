@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="juntu">
+  	
+  	
+  	<!-- 添加骏图景区  杨立 2018-01-25-->
+  	<insert id="addView" parameterType="cn.nvinfo.domain.ViewMessage" useGeneratedKeys="true">
+  		insert into viewMessage (name,level, address,lng,lat,city,sort,juntuId,remark) 
+  						values(#{name},#{level},#{address},#{lng},#{lat},#{city},#{sort},#{juntuId},#{remark})
+  	</insert>
+ 
+  	<!-- //添加骏图产品到数据库	2018-01-26-->
+  	<insert id="addProduct" parameterType="cn.nvinfo.domain.Product" useGeneratedKeys="true">
+  		insert into product (random_calendar,view_id,supplier_id,ticketType,priority_id,customName, name,endPrice,marketPrice,salePrice,isSale,startTime,
+  		endTime,dailySale,num,orderTime,isCancel,type,notice,costInside,costOutside,remark,userType,priorityType,method,customId,juntuPId,juntuTType,max_min_buy,
+  		validityDays,validityType,refundRule) 
+  		values(#{random_calendar},#{viewId},#{supplierId},#{ticketType},#{priorityId},#{customName},#{name},#{endPrice},#{marketPrice},#{salePrice},
+  		#{isSale},#{startTime},#{endTime},#{dailySale},#{num},#{orderTime},#{isCancel},#{type},#{notice},#{costInside},
+  		#{costOutside},#{remark},#{userType},#{priorityType},#{method},#{customId},#{juntuPId},#{juntuTType},#{max_min_buy},#{validityDays},#{validityType},#{refundRule})
+  	</insert>
+</mapper>

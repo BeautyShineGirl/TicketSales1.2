@@ -1,0 +1,59 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="juntu">
+  	
+  	
+  	<!-- 添加  杨立   2017-09-20-->
+  	<insert id="addView" parameterType="cn.nvinfo.domain.ViewMessage" useGeneratedKeys="true">
+  		insert into viewMessage (name,level, address,lng,lat,city,sort,juntuId,remark) 
+  						values(#{name},#{level},#{address},#{lng},#{lat},#{city},#{sort},#{juntuId},#{remark})
+  	</insert>
+ 
+  	<!-- 修改 	杨立	2017-09-21-->
+  	<update id="edit" parameterType="cn.nvinfo.domain.ViewMessage" useGeneratedKeys="true">
+  		update viewMessage set staff_id=#{staffId},name=#{name},level=#{level},type=#{type},remark=#{remark},
+  		address=#{address},businessTime=#{businessTime},phone=#{phone},reminder=#{reminder},discount=#{discount},
+  		busMessage=#{busMessage},selfRoute=#{selfRoute},lng=#{lng},lat=#{lat},province=#{province},
+  		city=#{city},sort=#{sort},staffName=#{staffName} where random_no=#{random_no} 
+  	</update>
+  	
+  		<!-- 将view表中的picture表为空	yangli	2017-10-27-->
+  	<update id="delPicture" parameterType="cn.nvinfo.domain.ViewMessage" useGeneratedKeys="true">
+  		update viewMessage set picture=null where id=#{id} 
+  	</update>
+  	
+  	<!-- 修改的数据回显   	杨立	2017-09-21 -->
+  	<select id="getById" resultType="cn.nvinfo.domain.ViewMessage">
+  		select id, staff_id staffId,name,level,type,remark, address,businessTime,phone,reminder,discount,
+  		busMessage,selfRoute,picture,lng,lat,province,city,sort,staffName,random_no from viewMessage where id=#{id}
+  	</select>
+  	
+  	<!-- 删除   杨立   2017-09-20	-->
+  	<delete id="delete" parameterType="cn.nvinfo.domain.ViewMessage">
+  		delete from viewMessage where id=#{id}
+  	</delete>
+  	
+  	<!--  再删除景区之前，先查询该景区是否有产品，若有，则返回删除失败	yangli 	2017-10-16-->
+  	<select id="getProduct" resultType="int">
+		select count(*) from product where view_id=#{id}
+  	</select>
+  	<!-- //根据random_no查出原本的oldUrl	yangli	2017-12-25-->
+  	<select id="getOldUrl" resultType="java.lang.String">
+  		select picture from viewMessage where random_no=#{random_no}
+  	</select>
+  	<!-- //先查询数据库中是否存在这个随机数，若存在，则不进行添加随机数-->
+  	<select id="getRandom_no" resultType="java.lang.String">
+  		select random_no from viewMessage where random_no=#{random_no}
+  	</select>
+  	
+  	<!-- 添加产品的随机数-->
+  	<insert id="addRandom_no" parameterType="cn.nvinfo.domain.ViewMessage" useGeneratedKeys="true">
+  		insert into viewMessage (random_no) values(#{random_no})
+  	</insert>
+  	<!-- //修改图片路径	2017-12-25	杨立 -->
+  	<update id="updateUrl" parameterType="cn.nvinfo.domain.ViewMessage" useGeneratedKeys="true">
+  		update viewMessage set picture=#{newUrl} where random_no=#{random_no}
+  	</update>
+</mapper>

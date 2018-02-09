@@ -1,0 +1,238 @@
+package cn.nvinfo.juntu.servlet;
+
+import java.io.IOException;
+import java.text.SimpleDateFormat;
+import java.util.HashMap;
+import java.util.Map;
+
+import javax.servlet.ServletException;
+import javax.servlet.http.HttpServlet;
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
+
+import net.sf.json.JSONObject;
+
+import org.apache.log4j.Logger;
+import org.json.JSONArray;
+import org.json.JSONException;
+import org.springframework.stereotype.Controller;
+import org.springframework.web.context.WebApplicationContext;
+import org.springframework.web.context.support.WebApplicationContextUtils;
+
+import cn.nvinfo.domain.Product;
+import cn.nvinfo.service.JuntuService;
+import cn.nvinfo.tools.MD5;
+import cn.nvinfo.utils.DecodeEncode;
+import cn.nvinfo.utils.EnDecrypt;
+import cn.nvinfo.utils.HttpUtils;
+import cn.nvinfo.utils.JuntuConfig;
+import cn.nvinfo.utils.StringUtil;
+/**
+ * 骏图.骏景宝
+ * 获取产品信息接口
+ * @author 杨立	2018-01-26
+ *
+ */
+@Controller
+public class GetProductServlet extends HttpServlet {
+
+	private static final long serialVersionUID = 1L;
+	private int total = 0;// 总产品数
+	private int pageNum = 20;// 每页显示多少条
+	private int currentPage = 1;
+	private String url="http://p-api.eticket.juntu.com/ticket/getProduct";
+	private static Logger log=Logger.getLogger(GetProductServlet.class);
+
+	public void doGet(HttpServletRequest request, HttpServletResponse response)
+			throws ServletException, IOException {
+		doPost(request,response);
+	}
+
+	public void doPost(HttpServletRequest request, HttpServletResponse response)
+			throws ServletException, IOException {
+		response.setContentType("text/html");
+		response.setContentType("text/html;charset=UTF-8");
+		//获取spring容器中的service
+		WebApplicationContext  ctx= WebApplicationContextUtils.getWebApplicationContext(this.getServletContext());
+		JuntuService juntuService = (JuntuService) ctx.getBean("juntuService",JuntuService.class);
+		Map<String,String> map=new HashMap<String, String>();
+		map.put("version", "");//1版本号
+		map.put("partnerId", JuntuConfig.partnerId);//2合作商ID
+		String timestamp=String.valueOf(System.currentTimeMillis());
+		map.put("timestamp", timestamp);//3请求发起的时间戳
+		//处理data数据page和pageSize，pageSize=20，page为变量
+		JSONObject js=new JSONObject();
+		js.put("method","page");
+		js.put("page",currentPage);
+		js.put("pageSize", pageNum);
+		log.info("未加密的json："+js);
+		byte[] encrypt = EnDecrypt.encrypt(js.toString().getBytes(), JuntuConfig.partnerKey.getBytes());//AES128加密
+		String data = DecodeEncode.encode(encrypt);//对AES加密数据进行一次base64编码
+		map.put("data", data);//4业务接口请求数据
+		//sign = MD5(partnerId＋ timestamp＋ partnerKey + data)
+		String sign = MD5.MD5Encode(JuntuConfig.partnerId+timestamp+JuntuConfig.partnerKey+data);
+		map.put("sign",sign);//5请求数据的签名
+
+		String sendPost = HttpUtils.sendPost(url, map);
+		log.info("请求发送的数据：url="+url+", map="+map);
+		log.info("请求getPoi返回：sendPost="+sendPost);
+		if(sendPost!=null||"".equals(sendPost)){
+			com.alibaba.fastjson.JSONObject json=com.alibaba.fastjson.JSONObject.parseObject(sendPost);
+			Integer status =0;
+			String message=null;
+			message=json.getString("message");
+			String resdata=null;
+			resdata=json.getString("data");
+			status=Integer.parseInt(json.getString("status"));
+			log.info("第一次请求第三方返回的参数（主要得知总数据）：status="+status+", message="+message+", resdata="+resdata);
+			com.alibaba.fastjson.JSONObject jsonData1=com.alibaba.fastjson.JSONObject.parseObject(resdata);
+			total=(Integer) jsonData1.get("total");
+			log.info("请求第三方返回的total="+total);
+			if(status==10000){
+				if (total <= pageNum) {
+					log.info("只有一页数据");
+					addProduct(resdata,juntuService);
+
+				} else {
+					if (total % pageNum == 0) {
+						for (int i = 1; i < (total / pageNum); i++) {
+							++currentPage;
+							log.info("当前页" + currentPage);
+							sendPost = HttpUtils.sendPost(url, map);
+							log.info("继续请求");
+							resdata=json.getString("data");
+							com.alibaba.fastjson.JSONObject jsonData2=com.alibaba.fastjson.JSONObject.parseObject(resdata);
+							resdata=jsonData2.getString("data");
+							log.info("获得resdata="+resdata);
+							addProduct(resdata,juntuService);
+
+						}
+					} else {
+						for (int i = 1; i < (total / pageNum + 1); i++) {
+							++currentPage;
+							log.info("加1当前页" + currentPage);
+							sendPost = HttpUtils.sendPost(url, map);
+							log.info("加1继续请求");
+							resdata=json.getString("data");
+							com.alibaba.fastjson.JSONObject jsonData2=com.alibaba.fastjson.JSONObject.parseObject(resdata);
+							resdata=jsonData2.getString("data");
+							log.info("加1获得resdata="+resdata);
+							addProduct(resdata,juntuService);
+						}
+					}
+				}
+
+
+			}else{
+				log.info("第三方返回的参数2：status="+status+", message="+message+", resdata="+resdata);
+			}
+		}
+	}
+	private void addProduct(String resdata,JuntuService juntuService) {
+		JSONArray ja=null;
+		try {
+			ja = new JSONArray(resdata);
+			log.info("获得的resdata转成jsonArray");
+			for (int i = 0; i < ja.length(); i++) {
+				log.info("进入for循环");
+				if(ja.getJSONObject(i).getInt("status")==1){
+					Integer view_id=0;
+					Product product=new Product();
+					String visitorInfoRule = ja.getJSONObject(i).getString("visitorInfoRule");
+					log.info("获得的即将存入数据库的visitorInfoRule="+ja.getJSONObject(i).getString("visitorInfoRule"));
+					String poiId = ja.getJSONObject(i).getString("poiId");
+					log.info("获得的即将存入数据库的poiId="+ ja.getJSONObject(i).getString("poiId"));
+					String remark="visitorInfoRule(游玩人信息要求):"+visitorInfoRule+"; \n1对应的景点id:"+poiId;
+					product.setRemark(remark);
+					log.info("即将存入数据库的remark="+ remark);
+					
+					//处理产品对应的景区id
+					String[] split = poiId.split(",");
+					 for (int j = 0; j < split.length; j++) {
+						 view_id = Integer.parseInt(split[0]);
+					}
+					product.setViewId(view_id);
+					log.info("即将存入数据库的view_id="+ view_id);
+					
+					product.setOrderTime(ja.getJSONObject(i).getString("bookEarly"));
+					log.info("获得的即将存入数据库的bookEarly="+ja.getJSONObject(i).getString("bookEarly"));
+
+					product.setJuntuPId(ja.getJSONObject(i).getInt("productId"));
+					log.info("获得的即将存入数据库的productId="+ja.getJSONObject(i).getInt("productId"));
+					
+					////门票有效期类0不限，1 绝对有效期 ，2 相对有效期
+					Integer validityType=ja.getJSONObject(i).getInt("validityType");
+					product.setValidityType(validityType);
+					log.info("获得的即将存入数据库的validityType="+validityType);
+					
+					//validityType为2时必填，兑换凭证后相对有效天数
+					product.setValidityDays(ja.getJSONObject(i).getInt("validityDays"));
+					log.info("获得的即将存入数据库的validityDays="+ja.getJSONObject(i).getInt("validityDays"));
+					
+					SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd");
+					if(validityType==1){
+						//validityType为1时必填，绝对有效日期截止时间，格式为yyyy-MM-dd HH:mm:ss
+						Long validityEnd1=(long) ja.getJSONObject(i).getInt("validityEnd");
+						if(validityEnd1!=0){
+							String validityEnd=sdf.format(validityEnd1);
+							product.setEndTime(validityEnd);
+							log.info("即将存入数据库的validityEnd="+validityEnd);
+						}
+						
+						//validityType为1时必填，绝对有效日期开始时间，格式为yyyy-MM-dd HH:mm:ss
+						String validityStart= ja.getJSONObject(i).getString("validityStart");
+						if(validityStart!=null||!"".equals(validityStart)){
+							product.setStartTime(sdf.format(Long.parseLong(validityStart)));
+							log.info("即将存入数据库的validityStart="+sdf.format(Long.parseLong(validityStart)));
+						}
+					}
+					
+					//门票资源类型，0-不限，1-单票，2-套票
+					int juntuTType=ja.getJSONObject(i).getInt("ticketType");
+					product.setJuntuTType(juntuTType);
+					log.info("获得的即将存入数据库的juntuTType="+juntuTType);
+					
+					Integer maxNum=ja.getJSONObject(i).getInt("maxNum");
+					Integer minNum=ja.getJSONObject(i).getInt("minNum");
+					log.info("获得的数据maxNum,minNum="+maxNum+","+minNum);
+					String max_min_buy=maxNum+","+minNum;
+					product.setMax_min_buy(max_min_buy);
+					log.info("即将存入数据库的max_min_buy="+max_min_buy);
+					
+					product.setName(ja.getJSONObject(i).getString("productName"));
+					log.info("获得的即将存入数据库的productName="+ja.getJSONObject(i).getString("productName"));
+					
+					//购票后生效时间，时间单位为分钟，比如activeMinutes=30，则表示购票后30分钟凭证生效，默认为0
+					Integer activeMinutes = ja.getJSONObject(i).getInt("activeMinutes");
+					log.info("获得的数据activeMinutes="+activeMinutes);
+					String buyNote=ja.getJSONObject(i).getString("buyNote");
+					log.info("获得的数据buyNote="+buyNote);
+					String notice="buyNote(购买须知，如费用包含、适用人群说明、适用方法、退改说明等):"+buyNote+", activeMinutes(购票后生效时间)"+activeMinutes;
+					product.setNotice(notice);
+					log.info("即将存入数据库的notice="+notice);
+					
+					product.setRefundRule(ja.getJSONObject(i).getString("refundRule"));
+					log.info("获得的即将存入数据库的refundRule="+ja.getJSONObject(i).getString("refundRule"));
+					
+					product.setRandom_calendar(StringUtil.getRandomString(9));
+					product.setCustomId(1);
+					product.setCustomName("默认分销商");
+					product.setSupplierId(3);
+					product.setPriorityId(1);
+					product.setPriorityType("优先级0");
+					product.setIsSale("是");
+					product.setUserType("0");
+					
+					log.info("存入数据库操作juntuPId="+ja.getJSONObject(i).getInt("productId") );
+					juntuService.addProduct(product);//添加骏图产品到数据库	2018-01-26
+				}else{
+					continue;
+				}
+			}
+		} catch (JSONException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+	}
+
+}
