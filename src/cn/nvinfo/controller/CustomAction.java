@@ -216,17 +216,17 @@ public class CustomAction{
 				+", financeMan="+custom.getFinanceMan()+", financePhone="+custom.getFinancePhone()+", qq="+custom.getQq());
 		//设置图片属性
 		custom.setFileUrl(null);
-		custom.setState(1);
+		custom.setState(0);
 		custom.setCustType(1);
 		custom.setLevel(1);
 		//添加操作
 		int rows= customService.add(custom);
 		if(rows>0){
-			log.info(new Result(1,"注册成功"));
-			return new Result(1,"注册成功");
+			log.info(new Result(1,"提交成功，待审核"));
+			return new Result(1,"提交成功，待审核");
 		} else {
-			log.info(new Result(0,"注册失败"));
-			return new Result(0,"注册失败");
+			log.info(new Result(0,"提交成功，待审核"));
+			return new Result(0,"提交成功，待审核");
 		}
 	}
 	/*** 
@@ -403,9 +403,9 @@ public class CustomAction{
 		Pager<CustomList> pager=customService.getCheckPager(pageIndex,pageSize);
 		if(pager.getDatas().size()!=0){
 			for (int i = 0; i < pager.getDatas().size(); i++) {
+				List<String> list=new ArrayList<String>();
 				if(pager.getDatas().get(i).getFileUrl()!=null){
 					String[] split = pager.getDatas().get(i).getFileUrl().split(",");
-					List<String> list=new ArrayList<String>();
 					for (String string : split) {
 						//String path="http://test.elvmedia.cn:8080"+request.getContextPath()+"/upload/idCardImages/"+string;
 						//正式服务器service.nvinfo.cn:8080
@@ -414,6 +414,10 @@ public class CustomAction{
 						list.add(path);
 						pager.getDatas().get(i).setFileList(list);
 					}
+				}else{
+					String path="http://service.nvinfo.cn:8080"+request.getContextPath()+"/upload/idCardImages/perphoto.jpg";
+					list.add(path);
+					pager.getDatas().get(i).setFileList(list);
 				}
 			}
 			log.info(new Result(1,"查询成功",pager));
