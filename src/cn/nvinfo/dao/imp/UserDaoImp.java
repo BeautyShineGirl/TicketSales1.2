@@ -296,6 +296,14 @@ public class UserDaoImp implements UserDao{
 		return template.update("user.updateRefund",map);
 
 	}
+	//将订单的orderState状态改为2 已核销，并获取当前时间，将时间写入数据库verDate的字段中	2018-02-26	yangli
+	public int updateVerdate(String orderId, String verDate,Integer orderState) {
+		Map<String,Object> map=new HashMap<String, Object>();
+		map.put("orderId", orderId);
+		map.put("verDate", verDate);
+		map.put("orderState", orderState);
+		return template.update("user.updateVerdate",map);
+	}
 	
 
 }

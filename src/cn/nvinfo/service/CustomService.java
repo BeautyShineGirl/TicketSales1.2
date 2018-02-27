@@ -84,5 +84,7 @@ public interface CustomService {
 	String findCode(String userName);
 	//将新密码存入数据库	杨立	2018-01-30
 	int updatePassword(String userName, String password);
+	//当用户名存在时验证手机号和用户名是否匹配，不匹配则不能发送验证码	2018-02-27	yangli
+	String getPhone(String userName);
 	
 }

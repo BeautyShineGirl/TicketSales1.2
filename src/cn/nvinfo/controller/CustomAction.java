@@ -260,7 +260,7 @@ public class CustomAction{
 
 	/**
 	 * 找回密码时给客户发送验证码短信的接口，并根据userName将验证码存入数据库
-	 * @param phone
+	 * @param phone,userName
 	 * @return
 	 */
 	@RequestMapping("/addCode.action")
@@ -270,19 +270,40 @@ public class CustomAction{
 			log.info(new Result(0,"参数错误"));
 			return new Result(0,"参数错误");
 		}
-		//生成6位数验证码
-		String code = StringUtil.getRandomString(6);
-		//将验证码存入数据库	杨立	2018-01-30
-		int rows=customService.addCode(code,userName);
-		//给客户发送验证码短信
-		SMS.findPassWord(code,phone);
-		if(rows>0){
-			log.info(new Result(1,"发送验证码成功"));
-			return new Result(1,"发送验证码成功");
-		}else{
-			log.info(new Result(0,"发送验证码失败"));
-			return new Result(0,"发送验证码失败");
+		//从数据库custom表中查找userName，如果有，则进行后面步骤，如果没有则返回用户名不存在	2018-02-26	yangli
+		List<String> ln = customService.checkUserName(userName);
+		if(ln.size()!=0){
+			for (int i = 0; i < ln.size(); i++) {
+				String string = ln.get(i);
+				if(!string.equals(userName)){
+					continue;
+				}else{
+					//当用户名存在时验证手机号和用户名是否匹配，不匹配则不能发送验证码	2018-02-27	yangli
+					String phone_old=customService.getPhone(userName);
+					if(phone_old.equals(phone)){
+						//生成6位数验证码
+						String code = StringUtil.getRandomString(5);
+						//将验证码存入数据库	杨立	2018-01-30
+						int rows=customService.addCode(code,userName);
+						//给客户发送验证码短信
+						SMS.findPassWord(code,phone);
+						if(rows>0){
+							log.info(new Result(1,"发送验证码成功"));
+							return new Result(1,"发送验证码成功");
+						}else{
+							log.info(new Result(0,"发送验证码失败"));
+							return new Result(0,"发送验证码失败");
+						}
+					}else{
+						log.info(new Result(0,"用户名和手机号不匹配"));
+						return new Result(0,"用户名和手机号不匹配");
+					}
+				}
+			}
 		}
+		log.info(new Result(0,"用户名不存在，请重新输入"));
+		return new Result(0,"用户名不存在，请重新输入");
+		
 	}
 
 

@@ -158,4 +158,9 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
   	<update id="updatePassword" parameterType="cn.nvinfo.domain.Custom" useGeneratedKeys="true">
   		update custom set password=#{password} where userName=#{userName} 
   	</update>
+  	
+  		<!--//当用户名存在时验证手机号和用户名是否匹配，不匹配则不能发送验证码	2018-02-27	yangli-->
+  	<select id="getPhone" resultType="java.lang.String">
+  		select phone from custom where userName=#{userName}
+  	</select>
 </mapper>

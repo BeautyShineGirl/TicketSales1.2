@@ -186,6 +186,10 @@ public class CustomDaoImp implements CustomDao {
 		map.put("userName", userName);
 		return template.update("custom.updatePassword", map);
 	}
+	//当用户名存在时验证手机号和用户名是否匹配，不匹配则不能发送验证码	2018-02-27	yangli
+	public String getPhone(String userName) {
+		return template.selectOne("custom.getPhone", userName);
+	}
 	
 	
 	

@@ -5,7 +5,6 @@ package cn.nvinfo.service.imp;
 import java.util.List;
 
 import javax.annotation.Resource;
-import javax.swing.text.View;
 
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -16,8 +15,6 @@ import cn.nvinfo.domain.Order;
 import cn.nvinfo.domain.Product;
 import cn.nvinfo.domain.ViewMessage;
 import cn.nvinfo.service.UserService;
-import cn.nvinfo.tools.OrderList;
-import cn.nvinfo.utils.Pager;
 
 
 @Service("userService")
@@ -261,6 +258,10 @@ public class UserServiceImp implements UserService {
 	public int updateRefund(String orderId, Integer status_no,
 			String requestTime, String responseTime) {
 		return userDao.updateRefund(orderId,status_no,requestTime,responseTime);
+	}
+	//将订单的orderState状态改为2 已核销，并获取当前时间，将时间写入数据库verDate的字段中	2018-02-26	yangli
+	public int updateVerdate(String orderId, String verDate,Integer orderState) {
+		return userDao.updateVerdate(orderId,verDate,orderState);
 	}
 
 	/*

@@ -328,4 +328,9 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
   	<update id="updateRefund" parameterType="cn.nvinfo.domain.Order" useGeneratedKeys="true">
   		update orderTable set supplierOrderState=#{supplierOrderState},requestTime=#{requestTime},responseTime=#{responseTime} where orderId=#{orderId} 
   	</update>
+  	
+  		<!--//将订单的orderState状态改为2 已核销，并获取当前时间，将时间写入数据库verDate的字段中	2018-02-26	yangli  -->
+  	<update id="updateVerdate" parameterType="cn.nvinfo.domain.Order" useGeneratedKeys="true">
+  		update orderTable set verDate=#{verDate},orderState=#{orderState} where orderId=#{orderId} 
+  	</update>
 </mapper>

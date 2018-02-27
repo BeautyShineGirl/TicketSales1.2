@@ -156,6 +156,10 @@ public class CustomServiceImp implements CustomService {
 	public int updatePassword(String userName, String password) {
 		return customDao.updatePassword(userName,password);
 	}
+	//当用户名存在时验证手机号和用户名是否匹配，不匹配则不能发送验证码	2018-02-27	yangli
+	public String getPhone(String userName) {
+		return customDao.getPhone(userName);
+	}
 	
 
 	

@@ -2,14 +2,11 @@ package cn.nvinfo.service;
 
 import java.util.List;
 
-import javax.swing.text.View;
 
 import cn.nvinfo.domain.Custom;
 import cn.nvinfo.domain.Order;
 import cn.nvinfo.domain.Product;
 import cn.nvinfo.domain.ViewMessage;
-import cn.nvinfo.tools.OrderList;
-import cn.nvinfo.utils.Pager;
 
 
 
@@ -132,4 +129,6 @@ public interface UserService {
 	//将骏图返回的退款结果存入数据库	2018-02-08	yangli
 	int updateRefund(String orderId, Integer status_no, String requestTime,
 			String responseTime);
+	//将订单的orderState状态改为2 已核销，并获取当前时间，将时间写入数据库verDate的字段中	2018-02-26	yangli
+	int updateVerdate(String orderId, String verDate,Integer orderState);
 }	
