@@ -1,0 +1,197 @@
+package cn.nvinfo.dao.imp;
+
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+import javax.annotation.Resource;
+
+import org.mybatis.spring.SqlSessionTemplate;
+import org.springframework.stereotype.Repository;
+
+import cn.nvinfo.dao.CustomDao;
+import cn.nvinfo.domain.Custom;
+import cn.nvinfo.domain.CustomType;
+import cn.nvinfo.tools.CustomList;
+/**
+ *  景区管理    
+ * @author 杨立   2017-09-19
+ *
+ */
+
+@Repository
+public class CustomDaoImp implements CustomDao {
+
+	@Resource
+	private SqlSessionTemplate template;
+	/*
+	 * 
+	 *  分页查询获得总数	杨立  2017-09-26(non-Javadoc)
+	 * @see cn.nvinfo.dao.ProductDao#getAllCount(java.lang.String, java.lang.String, java.lang.String, java.lang.String, double)
+	 */
+	public int getAllCount(Integer id,Integer logic,String name, String linkName,String custType,Integer level) {
+		Map<String,Object> map=new HashMap<String, Object>();
+		map.put("id", id);
+		map.put("logic", logic);
+		map.put("name", name);
+		map.put("linkName", linkName);
+		map.put("custType", custType);
+		map.put("level", level);
+		return template.selectOne("custom.getAllCount",map);
+	}
+	/*
+	 * 分页查询获得当前页数据	杨立  2017-09-26(non-Javadoc)
+	 * @see cn.nvinfo.dao.ProductDao#getPageDate(java.lang.Integer, java.lang.Integer, java.lang.String, java.lang.String, java.lang.String, java.lang.String, double)
+	 */
+	public List<CustomList> getPageDate(Integer pageIndex, Integer pageSize,Integer id,Integer logic,
+			String name, String linkName,String custType,Integer level) {
+		Map<String,Object> map=new HashMap<String, Object>();
+		map.put("pageIndex", (pageIndex-1)*pageSize);
+		map.put("pageSize", pageSize);
+		map.put("id", id);
+		map.put("logic", logic);
+		map.put("name", name);
+		map.put("linkName", linkName);
+		map.put("custType", custType);
+		map.put("level", level);
+		List<CustomList> list = template.selectList("custom.getPageDate", map);
+		return list;
+	}
+	/*
+	 * 修改数据回显  杨立  2017-09-27(non-Javadoc)
+	 * @see cn.nvinfo.dao.CustomDao#getCustom(java.lang.Integer)
+	 */
+	public Custom getCustom(Integer id) {
+		return template.selectOne("custom.getCustom",id);
+	}
+	/*
+	 * 从字典表中查询分销商等级 	杨立	2017-09-27(non-Javadoc)
+	 * @see cn.nvinfo.dao.CustomDao#getCustomType()
+	 */
+	public List<CustomType> getCustomType() {
+		return template.selectList("custom.getCustomType");
+	}
+	/*
+	 * 从字典表中查询分销商等级	杨立  2017-09-27(non-Javadoc)
+	 * @see cn.nvinfo.dao.CustomDao#getLevel()
+	 */
+	public List<String> getLevel() {
+		return template.selectList("custom.getLevel");
+	}
+	/*
+	 * 修改	杨立	2017-09-27(non-Javadoc)
+	 * @see cn.nvinfo.dao.CustomDao#edit(cn.nvinfo.domain.Custom)
+	 */
+	public int edit(Custom custom) {
+		return template.update("custom.edit", custom);
+	}
+	/*
+	 *  删除  	杨立   2017-09-27(non-Javadoc)
+	 * @see cn.nvinfo.dao.CustomDao#delete(java.lang.Integer)
+	 */
+	public int delete(Integer id) {
+		return template.delete("custom.delete", id);
+	}
+	/*
+	 *  审核分页显示	 获得总页数		杨立   2017-09-27(non-Javadoc)
+	 * @see cn.nvinfo.dao.CustomDao#getCheckAllCount()
+	 */
+	public int getCheckAllCount() {
+		return template.selectOne("custom.getCheckAllCount");
+	}
+	/*
+	 * 审核分页显示	 获得当前页数据		杨立   2017-09-27(non-Javadoc)
+	 * @see cn.nvinfo.dao.CustomDao#getCheckPageDate(java.lang.Integer, java.lang.Integer)
+	 */
+	public List<CustomList> getCheckPageDate(Integer pageIndex, Integer pageSize) {
+		Map<String,Object> map=new HashMap<String, Object>();
+		map.put("pageIndex", (pageIndex-1)*pageSize);
+		map.put("pageSize", pageSize);
+		return template.selectList("custom.getCheckPageDate", map);
+	}
+	/*
+	 * 审核通过操作	杨立	2017-09-27(non-Javadoc)
+	 * @see cn.nvinfo.dao.CustomDao#editCheck(java.lang.Integer)
+	 */
+	public int editCheck(Integer id) {
+		return template.update("custom.editCheck", id);
+	}
+	/*
+	 * 合同管理数据回显	杨立	2017-09-28(non-Javadoc)
+	 * @see cn.nvinfo.dao.CustomDao#getName()
+	 */
+	public List<Custom> getCuseom() {
+		return template.selectList("custom.getCuseom");
+	}
+	/*
+	 * 合同上传	杨立	2017-09-28(non-Javadoc)
+	 * @see cn.nvinfo.dao.CustomDao#upditURL(java.lang.String)
+	 */
+	public int upditURL(Integer id, String url) {
+		Map<String,Object> map=new HashMap<String, Object>();
+		map.put("id", id);
+		map.put("url", url);
+		return template.update("custom.upditURL", map);
+	}
+	/*
+	 * 审核不通过操作	杨立	2017-09-27(non-Javadoc)
+	 * @see cn.nvinfo.dao.CustomDao#editCheck(java.lang.Integer)
+	 */
+	public int checkNotPass(Integer id) {
+		return template.update("custom.checkNotPass", id);
+	}
+	/*
+	 * 分销商注册  杨立   2017-10-16(non-Javadoc)
+	 * @see cn.nvinfo.dao.CustomDao#add(cn.nvinfo.domain.Custom)
+	 */
+	public int add(Custom custom) {
+		return template.insert("custom.save", custom);
+	}
+	/*
+	 * 检查用户名是否已存在，如果已存在，则返回用户名已存在(non-Javadoc)
+	 * @see cn.nvinfo.dao.CustomDao#checkUserName(java.lang.String)
+	 */
+	public List<String> checkUserName(String userName) {
+		return template.selectList("custom.checkUserName", userName);
+	}
+	/*
+	 * 再删除分销商之前，先查询该分销商是否有产品，若有，则返回删除失败(non-Javadoc)
+	 * @see cn.nvinfo.dao.CustomDao#getProduct(java.lang.Integer)
+	 */
+	public int getProduct() {
+		return template.selectOne("custom.getProduct");
+	}
+	//根据分销商id查询分销商的信息	杨立	2018-01-16
+	public List<Custom> getUrlList(Integer id) {
+		return template.selectList("custom.getUrlList",id);
+	}
+	public String getUrl(Integer id) {
+		return template.selectOne("custom.getUrl",id);
+	}
+	//将验证码存入数据库	杨立	2018-01-30
+	public int addCode(String code, String userName) {
+		Map<String,Object> map=new HashMap<String, Object>();
+		map.put("code", code);
+		map.put("userName", userName);
+		return template.update("custom.addCode", map);
+	}
+	//查询库中code	2018-01-30	杨立
+	public String findCode(String userName) {
+		return template.selectOne("custom.findCode", userName);
+	}
+	//将新密码存入数据库	杨立	2018-01-30
+	public int updatePassword(String userName, String password) {
+		Map<String,Object> map=new HashMap<String, Object>();
+		map.put("password", password);
+		map.put("userName", userName);
+		return template.update("custom.updatePassword", map);
+	}
+	//当用户名存在时验证手机号和用户名是否匹配，不匹配则不能发送验证码	2018-02-27	yangli
+	public String getPhone(String userName) {
+		return template.selectOne("custom.getPhone", userName);
+	}
+	
+	
+	
+
+}

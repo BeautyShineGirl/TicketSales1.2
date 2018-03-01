@@ -333,4 +333,9 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
   	<update id="updateVerdate" parameterType="cn.nvinfo.domain.Order" useGeneratedKeys="true">
   		update orderTable set verDate=#{verDate},orderState=#{orderState} where orderId=#{orderId} 
   	</update>
+  	
+  	<!--//将出票通知暂时存成字符串，放到订单表中的remark字段，并标明通知时间	yangli	2018-03-01  -->
+  	<update id="saveTicketNotice" parameterType="cn.nvinfo.domain.Order" useGeneratedKeys="true">
+  		update orderTable set remark=#{remark} where orderId=#{orderId} 
+  	</update>
 </mapper>
